@@ -4,6 +4,7 @@ import javafx.beans.property.SimpleDoubleProperty;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Group;
+import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.control.Dialog;
@@ -19,6 +20,7 @@ import javafx.stage.FileChooser;
 import javafx.scene.effect.DropShadow;
 import java.io.*;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class AdventurePlanner extends Application {
 
@@ -449,6 +451,7 @@ public class AdventurePlanner extends Application {
                 connection.getStartX(), connection.getStartY(),
                 connection.getEndX(), connection.getEndY());
 
+        // Add the custom-connection-line class
         line.getStyleClass().add("custom-connection-line");
         line.setStroke(javafx.scene.paint.Color.rgb(107, 76, 140)); // Purple color
         line.setStrokeWidth(2);
@@ -570,6 +573,11 @@ public class AdventurePlanner extends Application {
     }
 
     private void updateCanvas() {
+        // Store existing custom connection lines to preserve them
+        List<Node> customConnectionLines = canvas.getChildren().stream()
+                .filter(node -> node instanceof Line && node.getStyleClass().contains("custom-connection-line"))
+                .collect(Collectors.toList());
+
         // Clear the canvas and node tracking
         canvas.getChildren().clear();
         nodeBoxes.clear();
@@ -577,11 +585,14 @@ public class AdventurePlanner extends Application {
         // Recreate grid
         createGridPattern();
 
+        // Re-add the custom connection lines
+        canvas.getChildren().addAll(customConnectionLines);
+
         // Draw all nodes and connections
         drawAllNodes();
         drawConnections();
 
-        // Draw custom connections
+        // Redraw custom connections (for arrow heads)
         for (CustomConnection connection : customConnections) {
             drawCustomConnection(connection);
         }
@@ -738,9 +749,9 @@ public class AdventurePlanner extends Application {
     }
 
     private void drawConnections() {
-        // Clear existing connections and decision labels
+        // Only remove standard connections (lines), but preserve custom connections
         canvas.getChildren().removeIf(node ->
-                node instanceof Line ||
+                (node instanceof Line && !node.getStyleClass().contains("custom-connection-line")) ||
                         (node instanceof HBox && node.getStyleClass().contains("decision-tag")));
 
         // Draw connections for each node
