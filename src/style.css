@@ -1,0 +1,217 @@
+/* Adventure Game Planner CSS */
+
+/* Root styling */
+.root {
+    -fx-background-color: #2C3E50;
+    -fx-font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.menu-bar {
+    -fx-background-color: #34495E;
+}
+
+.menu-bar .label {
+    -fx-text-fill: white;
+}
+
+.menu-item {
+    -fx-background-color: #2C3E50;
+}
+
+.menu-item .label {
+    -fx-text-fill: white;
+}
+
+.menu-item:hover {
+    -fx-background-color: #3498DB;
+}
+
+.context-menu {
+    -fx-background-color: #2C3E50;
+}
+
+/* Canvas styling */
+.canvas {
+    -fx-background-color: #2C3E50;
+    /* We'll use Node elements for grid instead of background image */
+}
+
+/* Story node styling */
+.story-node {
+    -fx-background-color: #3498DB;
+    -fx-background-radius: 8px;
+    -fx-border-radius: 8px;
+    -fx-border-color: #2980B9;
+    -fx-border-width: 2px;
+    -fx-alignment: center;
+    -fx-min-height: 80px;
+}
+
+.start-node {
+    -fx-background-color: #27AE60;
+    -fx-border-color: #2ECC71;
+}
+
+.selected-node {
+    -fx-background-color: #9B59B6;
+    -fx-border-color: #8E44AD;
+    -fx-border-width: 3px;
+}
+
+.node-title {
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-fill: white;
+    -fx-text-alignment: center;
+}
+
+.node-id {
+    -fx-font-size: 10px;
+    -fx-text-fill: white;
+    -fx-opacity: 0.8;
+}
+
+.node-description {
+    -fx-fill: white;
+    -fx-font-size: 12px;
+    -fx-opacity: 0.9;
+}
+
+/* Decision tag styling */
+.decision-tag {
+    -fx-background-color: #F0F0F0;
+    -fx-background-radius: 10px;
+    -fx-border-radius: 10px;
+    -fx-border-color: #CCCCCC;
+    -fx-border-width: 1px;
+    -fx-padding: 3 8 3 8;
+    -fx-cursor: hand;
+}
+
+.decision-tag:hover {
+    -fx-background-color: #E0E0E0;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.3), 3, 0, 0, 1);
+}
+
+.decision-text {
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #2C3E50;
+}
+
+.edit-decision-button {
+    -fx-background-color: transparent;
+    -fx-padding: 0;
+    -fx-min-width: 20;
+    -fx-min-height: 20;
+    -fx-cursor: hand;
+    -fx-text-fill: #7F8C8D;
+}
+
+.edit-decision-button:hover {
+    -fx-text-fill: #2C3E50;
+}
+
+/* Connection line styling */
+.connection-line {
+    -fx-stroke: #ECF0F1;
+    -fx-stroke-width: 2px;
+    -fx-opacity: 0.7;
+}
+
+/* Right panel styling */
+.right-panel {
+    -fx-background-color: #34495E;
+    -fx-padding: 15px;
+}
+
+.panel-label {
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+}
+
+.title-field, .description-area {
+    -fx-background-color: #ECF0F1;
+    -fx-background-radius: 4px;
+    -fx-border-radius: 4px;
+    -fx-border-color: #BDC3C7;
+    -fx-text-fill: #2C3E50;
+    -fx-font-size: 14px;
+}
+
+.description-area {
+    -fx-font-size: 13px;
+}
+
+.action-button {
+    -fx-background-color: #2E86C1;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-background-radius: 4px;
+    -fx-padding: 10px;
+    -fx-cursor: hand;
+}
+
+.action-button:hover {
+    -fx-background-color: #3498DB;
+}
+
+.delete-button {
+    -fx-background-color: #E74C3C;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-background-radius: 4px;
+    -fx-padding: 10px;
+    -fx-cursor: hand;
+}
+
+.delete-button:hover {
+    -fx-background-color: #C0392B;
+}
+
+/* Status bar styling */
+.status-bar {
+    -fx-background-color: #34495E;
+    -fx-padding: 3px 10px;
+}
+
+.status-label {
+    -fx-text-fill: white;
+    -fx-font-size: 12px;
+}
+
+/* Scroll pane styling */
+.scroll-pane {
+    -fx-background-color: transparent;
+    -fx-background: transparent;
+    -fx-border-color: transparent;
+}
+
+.scroll-pane > .viewport {
+    -fx-background-color: transparent;
+}
+
+.scroll-bar:horizontal, .scroll-bar:vertical {
+    -fx-background-color: #34495E;
+}
+
+.scroll-bar:horizontal .thumb, .scroll-bar:vertical .thumb {
+    -fx-background-color: #7F8C8D;
+    -fx-background-radius: 2px;
+}
+
+.separator {
+    -fx-padding: 5px 0;
+}
+
+/* Override JavaFX default styling */
+.split-pane-divider {
+    -fx-background-color: #2C3E50;
+    -fx-padding: 0 1px;
+}
+
+/* Animation for nodes */
+.story-node:hover {
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.8), 10, 0, 0, 0);
+    -fx-cursor: hand;
+}
