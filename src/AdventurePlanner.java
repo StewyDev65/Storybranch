@@ -22,6 +22,8 @@ import java.util.*;
 
 public class AdventurePlanner extends Application {
 
+    private StoryNode draggedNode = null;
+
     private Map<String, StoryNode> nodes = new HashMap<>();
     private Pane canvas;
     private ScrollPane scrollPane;
@@ -490,22 +492,51 @@ public class AdventurePlanner extends Application {
 
         // Make node draggable with continuous updates
         nodeBox.setOnMousePressed(e -> {
+            // Select the node first
             selectNode(node);
+
+            // Start drag operation
+            draggedNode = node;
             dragStartX = e.getSceneX();
             dragStartY = e.getSceneY();
+
+            e.consume(); // Prevent event bubbling
         });
 
         nodeBox.setOnMouseDragged(e -> {
-            double offsetX = (e.getSceneX() - dragStartX) / scale.get();
-            double offsetY = (e.getSceneY() - dragStartY) / scale.get();
-            node.setPosition(node.getX() + offsetX, node.getY() + offsetY);
-            nodeBox.setLayoutX(node.getX());
-            nodeBox.setLayoutY(node.getY());
-            dragStartX = e.getSceneX();
-            dragStartY = e.getSceneY();
+            // Only process drag for the active dragged node
+            if (draggedNode == node) {
+                // Calculate offset considering scale
+                double offsetX = (e.getSceneX() - dragStartX) / scale.get();
+                double offsetY = (e.getSceneY() - dragStartY) / scale.get();
 
-            // Update connections in real-time during drag
-            drawConnections();
+                // Update model position
+                double newX = node.getX() + offsetX;
+                double newY = node.getY() + offsetY;
+                node.setPosition(newX, newY);
+
+                // Get the current node box from the map to ensure we're using the right one
+                VBox currentNodeBox = nodeBoxes.get(node.getId());
+
+                // Update the visual position
+                currentNodeBox.setLayoutX(newX);
+                currentNodeBox.setLayoutY(newY);
+
+                // Update for next drag event
+                dragStartX = e.getSceneX();
+                dragStartY = e.getSceneY();
+
+                // Update connections
+                drawConnections();
+            }
+
+            e.consume(); // Prevent event bubbling
+        });
+
+        nodeBox.setOnMouseReleased(e -> {
+            // End the drag operation
+            draggedNode = null;
+            e.consume(); // Prevent event bubbling
         });
 
         // Add to tracking map and canvas
