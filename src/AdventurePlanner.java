@@ -22,6 +22,10 @@ import java.util.*;
 
 public class AdventurePlanner extends Application {
 
+    private Stack<UndoableAction> undoStack = new Stack<>();
+    private Button toggleConnectionButton; // Make this a class member
+    private double oldNodeX, oldNodeY; // For tracking node position for undo
+
     private StoryNode draggedNode = null;
 
     private boolean connectionModeActive = false;
@@ -160,6 +164,11 @@ public class AdventurePlanner extends Application {
                             newAdventure();
                             event.consume();
                             break;
+                        case Z:
+                            // Ctrl+Z to undo
+                            undo();
+                            event.consume();
+                            break;
                     }
                 }
             });
@@ -183,6 +192,11 @@ public class AdventurePlanner extends Application {
                                 case N:
                                     // Ctrl+N for new
                                     newAdventure();
+                                    event.consume();
+                                    break;
+                                case Z:
+                                    // Ctrl+Z to undo
+                                    undo();
                                     event.consume();
                                     break;
                             }
@@ -336,7 +350,7 @@ public class AdventurePlanner extends Application {
                 deleteBranchButton
         );
 
-        Button toggleConnectionButton = new Button("Toggle Free Connection Mode");
+        toggleConnectionButton = new Button("Enter Free Connection Mode");
         toggleConnectionButton.getStyleClass().add("action-button");
         toggleConnectionButton.setMaxWidth(Double.MAX_VALUE);
         toggleConnectionButton.setStyle("-fx-background-color: #6b4c8c; -fx-text-fill: #f0f0f0;"); // Purple styling
@@ -354,10 +368,16 @@ public class AdventurePlanner extends Application {
         connectionModeActive = !connectionModeActive;
 
         if (connectionModeActive) {
+            // Visual indication that connection mode is active
+            toggleConnectionButton.setText("Exit Connection Mode");
+            toggleConnectionButton.setStyle("-fx-background-color: #a1412e; -fx-text-fill: #f0f0f0;"); // Red when active
             statusLabel.setText("CONNECTION MODE ACTIVE - Click and drag to create connections");
             // Add mouse handlers for canvas for connections
             setupConnectionHandlers();
         } else {
+            // Reset the button when inactive
+            toggleConnectionButton.setText("Enter Free Connection Mode");
+            toggleConnectionButton.setStyle("-fx-background-color: #6b4c8c; -fx-text-fill: #f0f0f0;"); // Back to purple
             statusLabel.setText("Adventure Game Planner - " + currentFileName);
             // Remove temp handlers
             clearConnectionHandlers();
@@ -401,6 +421,9 @@ public class AdventurePlanner extends Application {
                         connectionTempEndX, connectionTempEndY
                 );
                 customConnections.add(connection);
+
+                // Add to undo stack
+                undoStack.push(new AddConnectionAction(connection));
 
                 // Draw the permanent connection with arrow head
                 drawCustomConnection(connection);
@@ -642,6 +665,10 @@ public class AdventurePlanner extends Application {
             dragStartX = e.getSceneX();
             dragStartY = e.getSceneY();
 
+            // Save initial position for undo
+            oldNodeX = node.getX();
+            oldNodeY = node.getY();
+
             e.consume(); // Prevent event bubbling
         });
 
@@ -677,7 +704,13 @@ public class AdventurePlanner extends Application {
 
         nodeBox.setOnMouseReleased(e -> {
             // End the drag operation
-            draggedNode = null;
+            if (draggedNode == node) {
+                // Only record an undoable action if the node actually moved
+                if (oldNodeX != node.getX() || oldNodeY != node.getY()) {
+                    undoStack.push(new MoveNodeAction(node, oldNodeX, oldNodeY));
+                }
+                draggedNode = null;
+            }
             e.consume(); // Prevent event bubbling
         });
 
@@ -946,6 +979,13 @@ public class AdventurePlanner extends Application {
         }
     }
 
+    private void undo() {
+        if (!undoStack.isEmpty()) {
+            UndoableAction action = undoStack.pop();
+            action.undo();
+        }
+    }
+
     private void saveAdventure(Stage stage, boolean saveAs) {
         File file = null;
 
@@ -1088,5 +1128,57 @@ public class AdventurePlanner extends Application {
         public double getStartY() { return startY; }
         public double getEndX() { return endX; }
         public double getEndY() { return endY; }
+    }
+
+    // Interface for undoable actions
+    private interface UndoableAction {
+        void undo();
+    }
+
+    // Node movement undo action
+    private class MoveNodeAction implements UndoableAction {
+        private StoryNode node;
+        private double oldX, oldY;
+
+        public MoveNodeAction(StoryNode node, double oldX, double oldY) {
+            this.node = node;
+            this.oldX = oldX;
+            this.oldY = oldY;
+        }
+
+        @Override
+        public void undo() {
+            // Store current position in case we want to redo later
+            double currentX = node.getX();
+            double currentY = node.getY();
+
+            // Restore old position
+            node.setPosition(oldX, oldY);
+
+            // Update visual position
+            VBox nodeBox = nodeBoxes.get(node.getId());
+            if (nodeBox != null) {
+                nodeBox.setLayoutX(oldX);
+                nodeBox.setLayoutY(oldY);
+            }
+
+            // Update connections
+            drawConnections();
+        }
+    }
+
+    // Connection creation undo action
+    private class AddConnectionAction implements UndoableAction {
+        private CustomConnection connection;
+
+        public AddConnectionAction(CustomConnection connection) {
+            this.connection = connection;
+        }
+
+        @Override
+        public void undo() {
+            customConnections.remove(connection);
+            updateCanvas();
+        }
     }
 }
