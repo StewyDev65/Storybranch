@@ -58,7 +58,7 @@ public class AdventurePlanner extends Application {
         canvas = new Pane();
         canvas.getStyleClass().add("canvas");
         canvas.setPrefSize(3000, 2000); // Large initial size
-        canvas.setStyle("-fx-background-color: #2C3E50;");
+        canvas.setStyle("-fx-background-color: #0a0b10;");
 
         canvasContainer = new Group(canvas);
 
@@ -319,8 +319,8 @@ public class AdventurePlanner extends Application {
         });
 
         // Add styling to buttons
-        addBranchButton.setStyle("-fx-background-color: #2E86C1; -fx-text-fill: white;");
-        deleteBranchButton.setStyle("-fx-background-color: #E74C3C; -fx-text-fill: white;");
+        addBranchButton.setStyle("-fx-background-color: #3b8272; -fx-text-fill: #f0f0f0;");
+        deleteBranchButton.setStyle("-fx-background-color: #723093; -fx-text-fill: #f0f0f0;");
 
         panel.getChildren().addAll(
                 titleLabel, titleField,
@@ -358,7 +358,13 @@ public class AdventurePlanner extends Application {
         drawNode(child);
         drawConnections();
 
-        // Set as selected
+        // Clear previous selection class from the parent node UI
+        if (selectedNode != null && nodeBoxes.containsKey(selectedNode.getId())) {
+            VBox prevSelectedBox = nodeBoxes.get(selectedNode.getId());
+            prevSelectedBox.getStyleClass().remove("selected-node");
+        }
+
+        // Set child as selected
         selectNode(child);
     }
 
@@ -429,6 +435,12 @@ public class AdventurePlanner extends Application {
         drawAllNodes();
         drawConnections();
         adjustCanvasSize();
+
+        // Restore visual selection if needed
+        if (selectedNode != null && nodeBoxes.containsKey(selectedNode.getId())) {
+            VBox selectedBox = nodeBoxes.get(selectedNode.getId());
+            selectedBox.getStyleClass().add("selected-node");
+        }
     }
 
     private void drawAllNodes() {
@@ -492,7 +504,12 @@ public class AdventurePlanner extends Application {
 
         // Make node draggable with continuous updates
         nodeBox.setOnMousePressed(e -> {
-            // Select the node first
+            // First, clear any previous selections
+            for (VBox box : nodeBoxes.values()) {
+                box.getStyleClass().remove("selected-node");
+            }
+
+            // Select the node
             selectNode(node);
 
             // Start drag operation
@@ -700,7 +717,7 @@ public class AdventurePlanner extends Application {
         // Create grid of dots
         int spacing = 30;
         int dotSize = 1;
-        Color dotColor = Color.rgb(58, 80, 107); // #3A506B
+        Color dotColor = Color.rgb(40, 46, 63); // #282830
 
         // Calculate how many dots we need based on the canvas size
         int dotsX = (int) Math.ceil(canvas.getPrefWidth() / spacing) + 1;

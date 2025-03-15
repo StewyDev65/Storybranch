@@ -1,102 +1,107 @@
-/* Adventure Game Planner CSS */
+/* Adventure Game Planner - Haunted Roadside Theme */
 
 /* Root styling */
 .root {
-    -fx-background-color: #2C3E50;
+    -fx-background-color: #0f0f12;
     -fx-font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
 .menu-bar {
-    -fx-background-color: #34495E;
+    -fx-background-color: #1a1a1f;
+    -fx-border-color: #2a2a32;
+    -fx-border-width: 0 0 1px 0;
 }
 
 .menu-bar .label {
-    -fx-text-fill: white;
+    -fx-text-fill: #e6e6e6;
 }
 
 .menu-item {
-    -fx-background-color: #2C3E50;
+    -fx-background-color: #1a1a1f;
 }
 
 .menu-item .label {
-    -fx-text-fill: white;
+    -fx-text-fill: #e6e6e6;
 }
 
 .menu-item:hover {
-    -fx-background-color: #3498DB;
+    -fx-background-color: #6b4c8c; /* Purple accent */
 }
 
 .context-menu {
-    -fx-background-color: #2C3E50;
+    -fx-background-color: #1a1a1f;
+    -fx-border-color: #2a2a32;
+    -fx-border-width: 1px;
 }
 
 /* Canvas styling */
 .canvas {
-    -fx-background-color: #2C3E50;
-    /* We'll use Node elements for grid instead of background image */
+    -fx-background-color: #0f0f12;
 }
 
 /* Story node styling */
 .story-node {
-    -fx-background-color: #3498DB;
-    -fx-background-radius: 8px;
-    -fx-border-radius: 8px;
-    -fx-border-color: #2980B9;
-    -fx-border-width: 2px;
+    -fx-background-color: #1f2937;
+    -fx-background-radius: 3px;
+    -fx-border-radius: 3px;
+    -fx-border-color: #364049;
+    -fx-border-width: 1px;
     -fx-alignment: center;
     -fx-min-height: 80px;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.3), 4, 0, 0, 1);
 }
 
 .start-node {
-    -fx-background-color: #27AE60;
-    -fx-border-color: #2ECC71;
+    -fx-background-color: #1e3c2f;
+    -fx-border-color: #4ca378;
 }
 
 .selected-node {
-    -fx-background-color: #9B59B6;
-    -fx-border-color: #8E44AD;
-    -fx-border-width: 3px;
+    -fx-background-color: #3b2a4f;
+    -fx-border-color: #6b4c8c;
+    -fx-border-width: 2px;
 }
 
 .node-title {
     -fx-font-size: 14px;
     -fx-font-weight: bold;
-    -fx-fill: white;
+    -fx-fill: #e6e6e6;
     -fx-text-alignment: center;
 }
 
 .node-id {
     -fx-font-size: 10px;
-    -fx-text-fill: white;
+    -fx-text-fill: #a0a0a0;
     -fx-opacity: 0.8;
 }
 
 .node-description {
-    -fx-fill: white;
+    -fx-fill: #c8c8c8;
     -fx-font-size: 12px;
     -fx-opacity: 0.9;
 }
 
 /* Decision tag styling */
 .decision-tag {
-    -fx-background-color: #F0F0F0;
-    -fx-background-radius: 10px;
-    -fx-border-radius: 10px;
-    -fx-border-color: #CCCCCC;
+    -fx-background-color: #1f1f24;
+    -fx-background-radius: 5px;
+    -fx-border-radius: 5px;
+    -fx-border-color: #35353d;
     -fx-border-width: 1px;
     -fx-padding: 3 8 3 8;
     -fx-cursor: hand;
 }
 
 .decision-tag:hover {
-    -fx-background-color: #E0E0E0;
-    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.3), 3, 0, 0, 1);
+    -fx-background-color: #2a2a32;
+    -fx-border-color: #6b4c8c;
+    -fx-effect: dropshadow(gaussian, rgba(107,76,140,0.3), 4, 0, 0, 1);
 }
 
 .decision-text {
     -fx-font-size: 12px;
     -fx-font-weight: bold;
-    -fx-text-fill: #2C3E50;
+    -fx-text-fill: #e0e0e0;
 }
 
 .edit-decision-button {
@@ -105,38 +110,41 @@
     -fx-min-width: 20;
     -fx-min-height: 20;
     -fx-cursor: hand;
-    -fx-text-fill: #7F8C8D;
+    -fx-text-fill: #8f8f8f;
 }
 
 .edit-decision-button:hover {
-    -fx-text-fill: #2C3E50;
+    -fx-text-fill: #d15943; /* Reddish accent */
 }
 
 /* Connection line styling */
 .connection-line {
-    -fx-stroke: #ECF0F1;
+    -fx-stroke: #28282c;
     -fx-stroke-width: 2px;
-    -fx-opacity: 0.7;
+    -fx-opacity: 0.6;
 }
 
 /* Right panel styling */
 .right-panel {
-    -fx-background-color: #34495E;
+    -fx-background-color: #1a1a1f;
     -fx-padding: 15px;
 }
 
 .panel-label {
-    -fx-text-fill: white;
+    -fx-text-fill: #e6e6e6;
     -fx-font-weight: bold;
 }
 
 .title-field, .description-area {
-    -fx-background-color: #ECF0F1;
-    -fx-background-radius: 4px;
-    -fx-border-radius: 4px;
-    -fx-border-color: #BDC3C7;
-    -fx-text-fill: #2C3E50;
+    -fx-background-color: #222228;
+    -fx-background-radius: 3px;
+    -fx-border-radius: 3px;
+    -fx-border-color: #35353d;
+    -fx-text-fill: #e6e6e6;
     -fx-font-size: 14px;
+    -fx-control-inner-background: #222228;
+    -fx-highlight-fill: #6b4c8c;
+    -fx-highlight-text-fill: #ffffff;
 }
 
 .description-area {
@@ -144,39 +152,41 @@
 }
 
 .action-button {
-    -fx-background-color: #2E86C1;
-    -fx-text-fill: white;
+    -fx-background-color: #4ca378; /* Green accent */
+    -fx-text-fill: #f0f0f0;
     -fx-font-weight: bold;
-    -fx-background-radius: 4px;
+    -fx-background-radius: 3px;
     -fx-padding: 10px;
     -fx-cursor: hand;
 }
 
 .action-button:hover {
-    -fx-background-color: #3498DB;
+    -fx-background-color: #5db889;
 }
 
 .delete-button {
-    -fx-background-color: #E74C3C;
-    -fx-text-fill: white;
+    -fx-background-color: #d15943; /* Red accent */
+    -fx-text-fill: #f0f0f0;
     -fx-font-weight: bold;
-    -fx-background-radius: 4px;
+    -fx-background-radius: 3px;
     -fx-padding: 10px;
     -fx-cursor: hand;
 }
 
 .delete-button:hover {
-    -fx-background-color: #C0392B;
+    -fx-background-color: #e66e59;
 }
 
 /* Status bar styling */
 .status-bar {
-    -fx-background-color: #34495E;
+    -fx-background-color: #1a1a1f;
     -fx-padding: 3px 10px;
+    -fx-border-color: #2a2a32;
+    -fx-border-width: 1px 0 0 0;
 }
 
 .status-label {
-    -fx-text-fill: white;
+    -fx-text-fill: #c8c8c8;
     -fx-font-size: 12px;
 }
 
@@ -192,39 +202,91 @@
 }
 
 .scroll-bar:horizontal, .scroll-bar:vertical {
-    -fx-background-color: #34495E;
+    -fx-background-color: #1a1a1f;
 }
 
 .scroll-bar:horizontal .thumb, .scroll-bar:vertical .thumb {
-    -fx-background-color: #7F8C8D;
+    -fx-background-color: #35353d;
     -fx-background-radius: 2px;
+}
+
+.scroll-bar:horizontal .thumb:hover, .scroll-bar:vertical .thumb:hover {
+    -fx-background-color: #6b4c8c;
 }
 
 .separator {
     -fx-padding: 5px 0;
+    -fx-opacity: 0.3;
 }
 
 /* Override JavaFX default styling */
 .split-pane-divider {
-    -fx-background-color: #2C3E50;
+    -fx-background-color: #2a2a32;
     -fx-padding: 0 1px;
 }
 
 /* Animation for nodes */
 .story-node:hover {
-    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.8), 10, 0, 0, 0);
+    -fx-effect: dropshadow(gaussian, rgba(107,76,140,0.3), 10, 0, 0, 0);
     -fx-cursor: hand;
+    -fx-border-color: #6b4c8c;
 }
 
 /* Tooltip styling */
 .node-tooltip {
-    -fx-background-color: #34495E;
-    -fx-text-fill: white;
+    -fx-background-color: #1a1a1f;
+    -fx-text-fill: #e6e6e6;
     -fx-font-size: 13px;
     -fx-padding: 10px;
-    -fx-border-color: #2980B9;
+    -fx-border-color: #6b4c8c;
     -fx-border-width: 1px;
-    -fx-border-radius: 4px;
-    -fx-background-radius: 4px;
+    -fx-border-radius: 3px;
+    -fx-background-radius: 3px;
     -fx-opacity: 0.95;
+}
+
+/* Grid dots (subtle) */
+.grid-dot {
+    -fx-fill: rgb(40, 46, 63);
+}
+
+/* Fix for white borders in SplitPane */
+.split-pane {
+    -fx-background-color: #0f0f12;
+    -fx-padding: 0;
+    -fx-background-insets: 0;
+    -fx-border-width: 0;
+}
+
+.split-pane-divider {
+    -fx-background-color: #2a2a32;
+    -fx-padding: 0 1px;
+    -fx-border-width: 0;
+    -fx-background-insets: 0;
+}
+
+.split-pane > .split-pane-divider > .vertical-grabber,
+.split-pane > .split-pane-divider > .horizontal-grabber {
+    -fx-background-color: #6b4c8c;
+    -fx-padding: 0;
+    -fx-background-insets: 0;
+}
+
+/* Ensure no white borders around ScrollPane */
+.scroll-pane {
+    -fx-background-color: transparent;
+    -fx-background: transparent;
+    -fx-border-color: transparent;
+    -fx-background-insets: 0;
+    -fx-padding: 0;
+}
+
+.scroll-pane > .viewport {
+    -fx-background-color: transparent;
+    -fx-background-insets: 0;
+    -fx-padding: 0;
+}
+
+.scroll-pane > .corner {
+    -fx-background-color: #0f0f12;
 }
