@@ -953,9 +953,9 @@ public class AdventurePlanner extends Application {
     }
 
     private void addDecisionTag(StoryNode parent, StoryNode child, double startX, double startY, double endX, double endY) {
-        // Calculate midpoint of the line
-        double midX = (startX + endX) / 2;
-        double midY = (startY + endY) / 2;
+        final double positionRatio = 0.56;
+        final double posX = startX + positionRatio * (endX - startX);
+        final double posY = startY + positionRatio * (endY - startY);
 
         // Get decision text
         String decisionText = parent.getDecisionText(child.getId());
@@ -974,9 +974,18 @@ public class AdventurePlanner extends Application {
         decisionTag.getStyleClass().add("decision-tag");
         decisionTag.setAlignment(Pos.CENTER);
 
-        // Position the tag
-        decisionTag.setLayoutX(midX - (decisionTag.prefWidth(-1) / 2));
-        decisionTag.setLayoutY(midY - 15);
+        // Set vertical position immediately
+        decisionTag.setLayoutY(posY - 15);
+
+        // Center consistently using a width property listener
+        decisionTag.widthProperty().addListener((obs, oldWidth, newWidth) -> {
+            decisionTag.setLayoutX(posX - (newWidth.doubleValue() / 2));
+        });
+
+        // Initial positioning after UI is rendered
+        Platform.runLater(() -> {
+            decisionTag.setLayoutX(posX - (decisionTag.getWidth() / 2));
+        });
 
         // Add hover effect to show edit button
         decisionTag.setOnMouseEntered(e -> editButton.setVisible(true));
@@ -994,9 +1003,7 @@ public class AdventurePlanner extends Application {
             dialog.showAndWait().ifPresent(result -> {
                 parent.setDecisionText(child.getId(), result);
                 label.setText(result);
-
-                // Adjust position after text change
-                decisionTag.setLayoutX(midX - (decisionTag.getWidth() / 2));
+                // No need to adjust position manually - the width listener handles it
             });
         });
 
