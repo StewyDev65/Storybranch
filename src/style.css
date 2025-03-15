@@ -119,7 +119,7 @@
 
 /* Connection line styling */
 .connection-line {
-    -fx-stroke: #28282c;
+    -fx-stroke: #6e6e80;
     -fx-stroke-width: 2px;
     -fx-opacity: 0.6;
 }
