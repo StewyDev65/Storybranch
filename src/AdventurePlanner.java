@@ -549,6 +549,13 @@ public class AdventurePlanner extends Application {
                 selectNode(node);
             }
         });
+
+        Tooltip tooltip = new Tooltip(node.getDescription());
+        tooltip.setShowDelay(javafx.util.Duration.millis(250));
+        tooltip.setWrapText(true);
+        tooltip.setMaxWidth(300); // Set max width to ensure proper wrapping
+        tooltip.getStyleClass().add("node-tooltip");
+        Tooltip.install(nodeBox, tooltip);
     }
 
     private void drawConnections() {

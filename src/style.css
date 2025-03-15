@@ -215,3 +215,16 @@
     -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.8), 10, 0, 0, 0);
     -fx-cursor: hand;
 }
+
+/* Tooltip styling */
+.node-tooltip {
+    -fx-background-color: #34495E;
+    -fx-text-fill: white;
+    -fx-font-size: 13px;
+    -fx-padding: 10px;
+    -fx-border-color: #2980B9;
+    -fx-border-width: 1px;
+    -fx-border-radius: 4px;
+    -fx-background-radius: 4px;
+    -fx-opacity: 0.95;
+}
