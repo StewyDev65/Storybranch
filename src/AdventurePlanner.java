@@ -22,6 +22,8 @@ import java.util.*;
 
 public class AdventurePlanner extends Application {
 
+    private ProgressBar savingProgressBar;
+
     private Stack<UndoableAction> undoStack = new Stack<>();
     private Button toggleConnectionButton; // Make this a class member
     private double oldNodeX, oldNodeY; // For tracking node position for undo
@@ -122,6 +124,8 @@ public class AdventurePlanner extends Application {
         HBox statusBar = new HBox(statusLabel);
         statusBar.getStyleClass().add("status-bar");
         statusBar.setPadding(new Insets(5));
+
+        setupStatusBar();
 
         // Set up layout
         SplitPane splitPane = new SplitPane();
@@ -1013,6 +1017,12 @@ public class AdventurePlanner extends Application {
         }
 
         if (file != null) {
+            // Show saving indicator with fake progress
+            showSavingIndicator();
+
+            // Create a final copy of the file for use in the lambda
+            final File savedFile = file;
+
             try (ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream(file))) {
                 // Write nodes map
                 out.writeObject(nodes);
@@ -1024,8 +1034,21 @@ public class AdventurePlanner extends Application {
                 out.writeObject(customConnections);
 
                 currentFileName = file.getAbsolutePath();
-                statusLabel.setText("Adventure Game Planner - " + file.getName());
+
+                // Use a simple timer to hide the indicator after 200ms
+                Timer timer = new Timer();
+                timer.schedule(new TimerTask() {
+                    @Override
+                    public void run() {
+                        javafx.application.Platform.runLater(() -> {
+                            statusLabel.setText("Adventure Game Planner - " + savedFile.getName());
+                            hideSavingIndicator();
+                        });
+                    }
+                }, 200);
+
             } catch (Exception e) {
+                hideSavingIndicator();
                 Alert alert = new Alert(Alert.AlertType.ERROR);
                 alert.setTitle("Error Saving File");
                 alert.setHeaderText("Could not save the adventure file.");
@@ -1035,6 +1058,31 @@ public class AdventurePlanner extends Application {
         }
     }
 
+    // Setup status bar method
+    private void setupStatusBar() {
+        // Create progress bar for saving indicator
+        savingProgressBar = new ProgressBar();
+        savingProgressBar.setPrefWidth(100);
+        savingProgressBar.setVisible(false); // Initially hidden
+        savingProgressBar.getStyleClass().add("saving-progress");
+
+        // Update the status bar creation to include the progress bar
+        ((HBox)statusLabel.getParent()).getChildren().add(savingProgressBar);
+        HBox.setHgrow(statusLabel, Priority.ALWAYS); // Make label take all available space
+        HBox.setMargin(savingProgressBar, new Insets(0, 10, 0, 0)); // Add right margin
+    }
+
+    // Simplified indicator methods
+    private void showSavingIndicator() {
+        statusLabel.setText("Saving...");
+        savingProgressBar.setProgress(ProgressBar.INDETERMINATE_PROGRESS);
+        savingProgressBar.setVisible(true);
+    }
+
+    private void hideSavingIndicator() {
+        savingProgressBar.setVisible(false);
+    }
+    
     // Story Node class
     public static class StoryNode implements Serializable {
         private static final long serialVersionUID = 1L;
