@@ -24,6 +24,12 @@ public class AdventurePlanner extends Application {
 
     private StoryNode draggedNode = null;
 
+    private boolean connectionModeActive = false;
+    private double connectionStartX, connectionStartY;
+    private double connectionTempEndX, connectionTempEndY;
+    private List<CustomConnection> customConnections = new ArrayList<>();
+    private Line previewLine = null;
+
     private Map<String, StoryNode> nodes = new HashMap<>();
     private Pane canvas;
     private ScrollPane scrollPane;
@@ -330,7 +336,120 @@ public class AdventurePlanner extends Application {
                 deleteBranchButton
         );
 
+        Button toggleConnectionButton = new Button("Toggle Free Connection Mode");
+        toggleConnectionButton.getStyleClass().add("action-button");
+        toggleConnectionButton.setMaxWidth(Double.MAX_VALUE);
+        toggleConnectionButton.setStyle("-fx-background-color: #6b4c8c; -fx-text-fill: #f0f0f0;"); // Purple styling
+        toggleConnectionButton.setOnAction(e -> toggleConnectionMode());
+
+        panel.getChildren().addAll(
+                new Separator(),
+                toggleConnectionButton
+        );
+
         return panel;
+    }
+
+    private void toggleConnectionMode() {
+        connectionModeActive = !connectionModeActive;
+
+        if (connectionModeActive) {
+            statusLabel.setText("CONNECTION MODE ACTIVE - Click and drag to create connections");
+            // Add mouse handlers for canvas for connections
+            setupConnectionHandlers();
+        } else {
+            statusLabel.setText("Adventure Game Planner - " + currentFileName);
+            // Remove temp handlers
+            clearConnectionHandlers();
+        }
+    }
+
+    private void setupConnectionHandlers() {
+        canvas.setOnMousePressed(e -> {
+            if (connectionModeActive) {
+                connectionStartX = e.getX();
+                connectionStartY = e.getY();
+
+                // Create preview line
+                previewLine = new Line(connectionStartX, connectionStartY, connectionStartX, connectionStartY);
+                previewLine.getStyleClass().add("custom-connection-line");
+                previewLine.setStroke(javafx.scene.paint.Color.rgb(107, 76, 140)); // Purple color
+                previewLine.setStrokeWidth(2);
+                previewLine.getStrokeDashArray().addAll(10d, 5d); // Dashed line
+                canvas.getChildren().add(previewLine);
+                e.consume();
+            }
+        });
+
+        canvas.setOnMouseDragged(e -> {
+            if (connectionModeActive && previewLine != null) {
+                connectionTempEndX = e.getX();
+                connectionTempEndY = e.getY();
+                previewLine.setEndX(connectionTempEndX);
+                previewLine.setEndY(connectionTempEndY);
+                e.consume();
+            }
+        });
+
+        canvas.setOnMouseReleased(e -> {
+            if (connectionModeActive && previewLine != null) {
+                canvas.getChildren().remove(previewLine);
+
+                // Create permanent connection
+                CustomConnection connection = new CustomConnection(
+                        connectionStartX, connectionStartY,
+                        connectionTempEndX, connectionTempEndY
+                );
+                customConnections.add(connection);
+
+                // Draw the permanent connection with arrow head
+                drawCustomConnection(connection);
+
+                previewLine = null;
+                e.consume();
+            }
+        });
+    }
+
+    private void clearConnectionHandlers() {
+        canvas.setOnMousePressed(null);
+        canvas.setOnMouseDragged(null);
+        canvas.setOnMouseReleased(null);
+    }
+
+    private void drawCustomConnection(CustomConnection connection) {
+        Line line = new Line(
+                connection.getStartX(), connection.getStartY(),
+                connection.getEndX(), connection.getEndY());
+
+        line.getStyleClass().add("custom-connection-line");
+        line.setStroke(javafx.scene.paint.Color.rgb(107, 76, 140)); // Purple color
+        line.setStrokeWidth(2);
+        line.getStrokeDashArray().addAll(10d, 5d); // Dashed line
+
+        // Create arrow head
+        double arrowLength = 15;
+        double arrowWidth = 7;
+
+        // Calculate the angle of the line
+        double dx = connection.getEndX() - connection.getStartX();
+        double dy = connection.getEndY() - connection.getStartY();
+        double angle = Math.atan2(dy, dx);
+
+        // Create arrow head
+        javafx.scene.shape.Polygon arrowHead = new javafx.scene.shape.Polygon();
+        arrowHead.getPoints().addAll(
+                connection.getEndX(), connection.getEndY(),
+                connection.getEndX() - arrowLength * Math.cos(angle - Math.PI/6),
+                connection.getEndY() - arrowLength * Math.sin(angle - Math.PI/6),
+                connection.getEndX() - arrowLength * Math.cos(angle + Math.PI/6),
+                connection.getEndY() - arrowLength * Math.sin(angle + Math.PI/6)
+        );
+        arrowHead.setFill(javafx.scene.paint.Color.rgb(107, 76, 140)); // Purple color
+
+        // Add the line and arrow head to the canvas
+        canvas.getChildren().add(0, line); // Add behind nodes
+        canvas.getChildren().add(arrowHead);
     }
 
     private void createInitialNode() {
@@ -434,6 +553,12 @@ public class AdventurePlanner extends Application {
         // Draw all nodes and connections
         drawAllNodes();
         drawConnections();
+
+        // Draw custom connections
+        for (CustomConnection connection : customConnections) {
+            drawCustomConnection(connection);
+        }
+
         adjustCanvasSize();
 
         // Restore visual selection if needed
@@ -763,9 +888,10 @@ public class AdventurePlanner extends Application {
 
         if (file != null) {
             try (ObjectInputStream in = new ObjectInputStream(new FileInputStream(file))) {
-                // Clear existing nodes
+                // Clear existing nodes and connections
                 nodes.clear();
                 nodeBoxes.clear();
+                customConnections.clear();
 
                 // Read nodes map
                 Map<String, StoryNode> loadedNodes = (Map<String, StoryNode>) in.readObject();
@@ -774,6 +900,34 @@ public class AdventurePlanner extends Application {
                 // Read start node ID
                 String startNodeId = (String) in.readObject();
                 startNode = nodes.get(startNodeId);
+
+                // Check for EOF to determine if this is a new format file with custom connections
+                try {
+                    // Attempt to read version marker or go directly to connections depending on implementation
+                    Object nextObject = in.readObject();
+
+                    // If this is a version marker (for future use)
+                    if (nextObject instanceof Integer) {
+                        int version = (Integer) nextObject;
+                        // Handle different versions as needed in the future
+
+                        // Read connections for version 2+ files
+                        List<CustomConnection> loadedConnections = (List<CustomConnection>) in.readObject();
+                        customConnections.addAll(loadedConnections);
+                    }
+                    // If we directly stored connections (current implementation)
+                    else if (nextObject instanceof List) {
+                        @SuppressWarnings("unchecked")
+                        List<CustomConnection> loadedConnections = (List<CustomConnection>) nextObject;
+                        customConnections.addAll(loadedConnections);
+                    }
+                } catch (EOFException e) {
+                    // This is an older file that doesn't have custom connections - that's ok
+                    System.out.println("Loading pre-update adventure file (no custom connections)");
+                } catch (Exception e) {
+                    // Log other exceptions but continue with the data we have
+                    System.err.println("Warning: Error reading custom connections: " + e.getMessage());
+                }
 
                 currentFileName = file.getAbsolutePath();
                 statusLabel.setText("Adventure Game Planner - " + file.getName());
@@ -825,6 +979,9 @@ public class AdventurePlanner extends Application {
 
                 // Write start node ID
                 out.writeObject(startNode.getId());
+
+                // Write custom connections
+                out.writeObject(customConnections);
 
                 currentFileName = file.getAbsolutePath();
                 statusLabel.setText("Adventure Game Planner - " + file.getName());
@@ -911,5 +1068,25 @@ public class AdventurePlanner extends Application {
         public void setDecisionText(String childId, String text) {
             childDecisions.put(childId, text);
         }
+    }
+
+    // Custom Connection class
+    public static class CustomConnection implements Serializable {
+        private static final long serialVersionUID = 1L;
+
+        private double startX, startY;
+        private double endX, endY;
+
+        public CustomConnection(double startX, double startY, double endX, double endY) {
+            this.startX = startX;
+            this.startY = startY;
+            this.endX = endX;
+            this.endY = endY;
+        }
+
+        public double getStartX() { return startX; }
+        public double getStartY() { return startY; }
+        public double getEndX() { return endX; }
+        public double getEndY() { return endY; }
     }
 }

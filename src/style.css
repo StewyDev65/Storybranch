@@ -290,3 +290,9 @@
 .scroll-pane > .corner {
     -fx-background-color: #0f0f12;
 }
+
+.custom-connection-line {
+    -fx-stroke: #6b4c8c;
+    -fx-stroke-dash-array: 10 5;
+    -fx-stroke-width: 2px;
+}
