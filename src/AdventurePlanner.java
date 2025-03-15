@@ -25,6 +25,8 @@ import java.util.stream.Collectors;
 
 public class AdventurePlanner extends Application {
 
+    private CustomConnection selectedConnection = null;
+
     private ProgressBar savingProgressBar;
 
     private Stack<UndoableAction> undoStack = new Stack<>();
@@ -79,6 +81,9 @@ public class AdventurePlanner extends Application {
 
         // Create grid pattern programmatically instead of using CSS background-image
         createGridPattern();
+
+        // Set up the canvas click handler for selection clearing
+        setupCanvasClickHandler();
 
         // Add keyboard shortcuts
         setupKeyboardShortcuts(primaryStage);
@@ -177,6 +182,16 @@ public class AdventurePlanner extends Application {
                             event.consume();
                             break;
                     }
+                } else {
+                    switch (event.getCode()) {
+                        case DELETE:
+                            // Delete selected connection
+                            if (selectedConnection != null) {
+                                deleteCustomConnection(selectedConnection);
+                                event.consume();
+                            }
+                            break;
+                    }
                 }
             });
         } else {
@@ -205,6 +220,16 @@ public class AdventurePlanner extends Application {
                                     // Ctrl+Z to undo
                                     undo();
                                     event.consume();
+                                    break;
+                            }
+                        } else {
+                            switch (event.getCode()) {
+                                case DELETE:
+                                    // Delete selected connection
+                                    if (selectedConnection != null) {
+                                        deleteCustomConnection(selectedConnection);
+                                        event.consume();
+                                    }
                                     break;
                             }
                         }
@@ -452,21 +477,47 @@ public class AdventurePlanner extends Application {
     }
 
     private void drawCustomConnection(CustomConnection connection) {
-        Line line = new Line(
+        // Create the visible line with original styling
+        Line visibleLine = new Line(
                 connection.getStartX(), connection.getStartY(),
                 connection.getEndX(), connection.getEndY());
 
-        // Add the custom-connection-line class
-        line.getStyleClass().add("custom-connection-line");
-        line.setStroke(javafx.scene.paint.Color.rgb(107, 76, 140)); // Purple color
-        line.setStrokeWidth(2);
-        line.getStrokeDashArray().addAll(10d, 5d); // Dashed line
+        // Style the visible line
+        visibleLine.getStyleClass().add("custom-connection-line");
+        visibleLine.setStroke(javafx.scene.paint.Color.rgb(107, 76, 140)); // Purple color
+        visibleLine.setStrokeWidth(2);
+        visibleLine.getStrokeDashArray().addAll(10d, 5d); // Dashed line
 
-        // Create arrow head
-        double arrowLength = 15;
-        double arrowWidth = 7;
+        // Create an invisible, thicker line for easier selection
+        Line selectionLine = new Line(
+                connection.getStartX(), connection.getStartY(),
+                connection.getEndX(), connection.getEndY());
+        selectionLine.setStroke(javafx.scene.paint.Color.TRANSPARENT);
+        selectionLine.setStrokeWidth(15); // Much wider for easier selection
+        selectionLine.setCursor(javafx.scene.Cursor.HAND); // Change cursor on hover
+
+        // Make the selection line handle clicks
+        selectionLine.setOnMouseClicked(e -> {
+            // Clear previous selection
+            clearConnectionSelection();
+
+            // Select this connection
+            selectedConnection = connection;
+            visibleLine.getStyleClass().add("selected-connection-line");
+
+            // Also select the arrow head
+            if (connection.getArrowHead() != null) {
+                connection.getArrowHead().getStyleClass().add("selected-connection-arrow");
+            }
+
+            // Show a delete button near the line
+            showConnectionDeleteButton(connection, visibleLine);
+
+            e.consume();
+        });
 
         // Calculate the angle of the line
+        double arrowLength = 15;
         double dx = connection.getEndX() - connection.getStartX();
         double dy = connection.getEndY() - connection.getStartY();
         double angle = Math.atan2(dy, dx);
@@ -481,10 +532,102 @@ public class AdventurePlanner extends Application {
                 connection.getEndY() - arrowLength * Math.sin(angle + Math.PI/6)
         );
         arrowHead.setFill(javafx.scene.paint.Color.rgb(107, 76, 140)); // Purple color
+        arrowHead.getStyleClass().add("custom-connection-arrow");
+        arrowHead.setCursor(javafx.scene.Cursor.HAND); // Change cursor on hover
 
-        // Add the line and arrow head to the canvas
-        canvas.getChildren().add(0, line); // Add behind nodes
+        // Make the arrow head also selectable
+        arrowHead.setOnMouseClicked(e -> {
+            // Clear previous selection
+            clearConnectionSelection();
+
+            // Select this connection
+            selectedConnection = connection;
+            visibleLine.getStyleClass().add("selected-connection-line");
+            arrowHead.getStyleClass().add("selected-connection-arrow");
+
+            // Show a delete button near the line
+            showConnectionDeleteButton(connection, visibleLine);
+
+            e.consume();
+        });
+
+        // Store references to the visual elements in the connection object
+        connection.setLine(visibleLine);
+        connection.setArrowHead(arrowHead);
+        connection.setSelectionLine(selectionLine); // Store the selection line too
+
+        // Add all elements to the canvas in the right order
+        canvas.getChildren().add(0, visibleLine); // Visible line at the bottom
         canvas.getChildren().add(arrowHead);
+        canvas.getChildren().add(selectionLine); // Invisible selection line on top
+    }
+
+    private void clearConnectionSelection() {
+        // Remove selected-connection-line class from ALL lines
+        for (Node node : canvas.getChildren()) {
+            if (node instanceof Line) {
+                node.getStyleClass().remove("selected-connection-line");
+            } else if (node instanceof javafx.scene.shape.Polygon) {
+                node.getStyleClass().remove("selected-connection-arrow");
+            }
+        }
+
+        // Remove any delete buttons
+        canvas.getChildren().removeIf(node ->
+                node instanceof Button && node.getStyleClass().contains("connection-delete-button"));
+
+        selectedConnection = null;
+    }
+
+    private void showConnectionDeleteButton(CustomConnection connection, Line line) {
+        // Create a delete button
+        Button deleteButton = new Button("X");
+        deleteButton.getStyleClass().add("connection-delete-button");
+
+        // Position the button near the middle of the line
+        double midX = (connection.getStartX() + connection.getEndX()) / 2;
+        double midY = (connection.getStartY() + connection.getEndY()) / 2;
+
+        deleteButton.setLayoutX(midX - 10);
+        deleteButton.setLayoutY(midY - 10);
+
+        // Set the action to delete the connection
+        deleteButton.setOnAction(e -> {
+            deleteCustomConnection(connection);
+        });
+
+        canvas.getChildren().add(deleteButton);
+    }
+
+    private void deleteCustomConnection(CustomConnection connection) {
+        // Remove the connection from our list
+        customConnections.remove(connection);
+
+        // Remove the visual elements from the canvas
+        if (connection.getLine() != null) {
+            canvas.getChildren().remove(connection.getLine());
+        }
+
+        if (connection.getSelectionLine() != null) {
+            canvas.getChildren().remove(connection.getSelectionLine());
+        }
+
+        if (connection.getArrowHead() != null) {
+            canvas.getChildren().remove(connection.getArrowHead());
+        }
+
+        // Remove any delete buttons
+        canvas.getChildren().removeIf(node ->
+                node instanceof Button && node.getStyleClass().contains("connection-delete-button"));
+
+        // Add to undo stack
+        undoStack.push(new DeleteConnectionAction(connection));
+
+        // Clear the selection
+        selectedConnection = null;
+
+        // Force a redraw to ensure everything is properly updated
+        updateCanvas();
     }
 
     private void createInitialNode() {
@@ -578,10 +721,28 @@ public class AdventurePlanner extends Application {
     }
 
     private void updateCanvas() {
-        // Store existing custom connection lines to preserve them
-        List<Node> customConnectionLines = canvas.getChildren().stream()
-                .filter(node -> node instanceof Line && node.getStyleClass().contains("custom-connection-line"))
-                .collect(Collectors.toList());
+        // Store existing custom connection references
+        CustomConnection tempSelectedConnection = selectedConnection;
+
+        // Remove all visual elements for custom connections
+        for (CustomConnection connection : customConnections) {
+            if (connection.getLine() != null) {
+                canvas.getChildren().remove(connection.getLine());
+                connection.setLine(null);
+            }
+            if (connection.getSelectionLine() != null) {
+                canvas.getChildren().remove(connection.getSelectionLine());
+                connection.setSelectionLine(null);
+            }
+            if (connection.getArrowHead() != null) {
+                canvas.getChildren().remove(connection.getArrowHead());
+                connection.setArrowHead(null);
+            }
+        }
+
+        // Remove delete buttons
+        canvas.getChildren().removeIf(node ->
+                node instanceof Button && node.getStyleClass().contains("connection-delete-button"));
 
         // Clear the canvas and node tracking
         canvas.getChildren().clear();
@@ -590,14 +751,11 @@ public class AdventurePlanner extends Application {
         // Recreate grid
         createGridPattern();
 
-        // Re-add the custom connection lines
-        canvas.getChildren().addAll(customConnectionLines);
-
         // Draw all nodes and connections
         drawAllNodes();
         drawConnections();
 
-        // Redraw custom connections (for arrow heads)
+        // Redraw custom connections
         for (CustomConnection connection : customConnections) {
             drawCustomConnection(connection);
         }
@@ -605,9 +763,18 @@ public class AdventurePlanner extends Application {
         adjustCanvasSize();
 
         // Restore visual selection if needed
-        if (selectedNode != null && nodeBoxes.containsKey(selectedNode.getId())) {
-            VBox selectedBox = nodeBoxes.get(selectedNode.getId());
-            selectedBox.getStyleClass().add("selected-node");
+        if (tempSelectedConnection != null && customConnections.contains(tempSelectedConnection)) {
+            selectedConnection = tempSelectedConnection;
+            Line line = selectedConnection.getLine();
+            if (line != null) {
+                line.getStyleClass().add("selected-connection-line");
+
+                if (selectedConnection.getArrowHead() != null) {
+                    selectedConnection.getArrowHead().getStyleClass().add("selected-connection-arrow");
+                }
+
+                showConnectionDeleteButton(selectedConnection, line);
+            }
         }
     }
 
@@ -1100,6 +1267,16 @@ public class AdventurePlanner extends Application {
         savingProgressBar.setVisible(false);
     }
 
+    private void setupCanvasClickHandler() {
+        canvas.setOnMouseClicked(e -> {
+            // Only clear selection if we're clicking on the canvas itself
+            // and not on a node or something else
+            if (e.getTarget() == canvas) {
+                clearConnectionSelection();
+            }
+        });
+    }
+
     @Override
     public void stop() {
         // Cancel any running timers
@@ -1192,6 +1369,11 @@ public class AdventurePlanner extends Application {
         private double startX, startY;
         private double endX, endY;
 
+        // Transient fields for UI elements (not serialized)
+        private transient Line line;
+        private transient Line selectionLine;
+        private transient javafx.scene.shape.Polygon arrowHead;
+
         public CustomConnection(double startX, double startY, double endX, double endY) {
             this.startX = startX;
             this.startY = startY;
@@ -1203,6 +1385,15 @@ public class AdventurePlanner extends Application {
         public double getStartY() { return startY; }
         public double getEndX() { return endX; }
         public double getEndY() { return endY; }
+
+        public Line getLine() { return line; }
+        public void setLine(Line line) { this.line = line; }
+
+        public Line getSelectionLine() { return selectionLine; }
+        public void setSelectionLine(Line selectionLine) { this.selectionLine = selectionLine; }
+
+        public javafx.scene.shape.Polygon getArrowHead() { return arrowHead; }
+        public void setArrowHead(javafx.scene.shape.Polygon arrowHead) { this.arrowHead = arrowHead; }
     }
 
     // Interface for undoable actions
@@ -1239,6 +1430,23 @@ public class AdventurePlanner extends Application {
 
             // Update connections
             drawConnections();
+        }
+    }
+
+    private class DeleteConnectionAction implements UndoableAction {
+        private CustomConnection connection;
+
+        public DeleteConnectionAction(CustomConnection connection) {
+            this.connection = connection;
+        }
+
+        @Override
+        public void undo() {
+            // Add the connection back
+            customConnections.add(connection);
+
+            // Redraw the connection
+            drawCustomConnection(connection);
         }
     }
 

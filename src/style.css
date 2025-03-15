@@ -296,3 +296,33 @@
     -fx-stroke-dash-array: 10 5;
     -fx-stroke-width: 2px;
 }
+
+.selected-connection-line {
+    -fx-stroke: #f0ad4e; /* Amber highlight color */
+    -fx-stroke-width: 3px;
+}
+
+.connection-delete-button {
+    -fx-background-color: #d15943; /* Red accent */
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-min-width: 20px;
+    -fx-min-height: 20px;
+    -fx-max-width: 20px;
+    -fx-max-height: 20px;
+    -fx-padding: 0;
+    -fx-background-radius: 10px;
+    -fx-cursor: hand;
+}
+
+.connection-delete-button:hover {
+    -fx-background-color: #e66e59;
+}
+
+.custom-connection-arrow {
+    -fx-stroke: none;
+}
+
+.selected-connection-arrow {
+    -fx-fill: #f0ad4e; /* Amber highlight color to match the selected line */
+}
