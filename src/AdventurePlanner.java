@@ -1,4 +1,5 @@
 import javafx.application.Application;
+import javafx.application.Platform;
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.geometry.Insets;
@@ -228,7 +229,11 @@ public class AdventurePlanner extends Application {
         openItem.setOnAction(e -> openAdventure(primaryStage));
         saveItem.setOnAction(e -> saveAdventure(primaryStage, false));
         saveAsItem.setOnAction(e -> saveAdventure(primaryStage, true));
-        exitItem.setOnAction(e -> primaryStage.close());
+        exitItem.setOnAction(e -> {
+            primaryStage.close();
+            Platform.exit();
+            System.exit(0);
+        });
 
         fileMenu.getItems().addAll(newItem, openItem, saveItem, saveAsItem, new SeparatorMenuItem(), exitItem);
 
@@ -1055,6 +1060,7 @@ public class AdventurePlanner extends Application {
                             statusLabel.setText("Adventure Game Planner - " + savedFile.getName());
                             hideSavingIndicator();
                         });
+                        timer.cancel();
                     }
                 }, 200);
 
@@ -1092,6 +1098,16 @@ public class AdventurePlanner extends Application {
 
     private void hideSavingIndicator() {
         savingProgressBar.setVisible(false);
+    }
+
+    @Override
+    public void stop() {
+        // Cancel any running timers
+        // If you have any Timer objects as class fields, cancel them here
+
+        // Force exit the application
+        Platform.exit();
+        System.exit(0);
     }
     
     // Story Node class
