@@ -8,9 +8,7 @@ import javafx.scene.Group;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
-import javafx.scene.control.Dialog;
 import javafx.scene.control.TextInputDialog;
-import javafx.scene.input.MouseEvent;
 import javafx.scene.input.ScrollEvent;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
@@ -21,9 +19,12 @@ import javafx.stage.FileChooser;
 import javafx.scene.effect.DropShadow;
 import java.io.*;
 import java.util.*;
-import java.util.stream.Collectors;
 
 public class AdventurePlanner extends Application {
+
+    private boolean decisionTagModeActive = false;
+    private List<CustomDecisionTag> customDecisionTags = new ArrayList<>();
+    private Button toggleDecisionTagButton;
 
     private CustomConnection selectedConnection = null;
 
@@ -389,7 +390,7 @@ public class AdventurePlanner extends Application {
         toggleConnectionButton = new Button("Enter Free Connection Mode");
         toggleConnectionButton.getStyleClass().add("action-button");
         toggleConnectionButton.setMaxWidth(Double.MAX_VALUE);
-        toggleConnectionButton.setStyle("-fx-background-color: #6b4c8c; -fx-text-fill: #f0f0f0;"); // Purple styling
+        toggleConnectionButton.setStyle("-fx-background-color: #3b91c5; -fx-text-fill: #f0f0f0;"); // Purple styling
         toggleConnectionButton.setOnAction(e -> toggleConnectionMode());
 
         panel.getChildren().addAll(
@@ -397,7 +398,211 @@ public class AdventurePlanner extends Application {
                 toggleConnectionButton
         );
 
+        toggleDecisionTagButton = new Button("Enter Custom Tag Mode");
+        toggleDecisionTagButton.getStyleClass().add("action-button");
+        toggleDecisionTagButton.setMaxWidth(Double.MAX_VALUE);
+        toggleDecisionTagButton.setStyle("-fx-background-color: #5e4cc3; -fx-text-fill: #f0f0f0;"); // Green styling
+        toggleDecisionTagButton.setOnAction(e -> toggleDecisionTagMode());
+
+        panel.getChildren().addAll(
+                new Separator(),
+                toggleDecisionTagButton
+        );
+
         return panel;
+    }
+
+    private void toggleDecisionTagMode() {
+        // Exit connection mode if it's active
+        if (connectionModeActive) {
+            toggleConnectionMode();
+        }
+
+        decisionTagModeActive = !decisionTagModeActive;
+
+        if (decisionTagModeActive) {
+            // Visual indication that tag mode is active
+            toggleDecisionTagButton.setText("Exit Tag Mode");
+            toggleDecisionTagButton.setStyle("-fx-background-color: #a1412e; -fx-text-fill: #f0f0f0;"); // Red when active
+            statusLabel.setText("TAG MODE ACTIVE - Click anywhere to place custom tags");
+            // Add mouse handler for canvas for tags
+            setupDecisionTagHandler();
+        } else {
+            // Reset the button when inactive
+            toggleDecisionTagButton.setText("Enter Custom Tag Mode");
+            toggleDecisionTagButton.setStyle("-fx-background-color: #5e4cc3; -fx-text-fill: #f0f0f0;"); // Back to green
+            statusLabel.setText("Adventure Game Planner - " + currentFileName);
+            // Remove handler
+            clearDecisionTagHandler();
+        }
+    }
+
+    private void setupDecisionTagHandler() {
+        canvas.setOnMouseClicked(e -> {
+            if (decisionTagModeActive) {
+                double clickX = e.getX();
+                double clickY = e.getY();
+
+                // Create a TextInputDialog to get the tag text
+                TextInputDialog dialog = new TextInputDialog("Tag text...");
+                dialog.setTitle("Create Custom Tag");
+                dialog.setHeaderText("Enter tag text");
+                dialog.setContentText("Text for this tag:");
+
+                dialog.showAndWait().ifPresent(text -> {
+                    // Create a new custom decision tag
+                    CustomDecisionTag tag = new CustomDecisionTag(clickX, clickY, text);
+                    customDecisionTags.add(tag);
+
+                    // Add to undo stack
+                    undoStack.push(new AddDecisionTagAction(tag));
+
+                    // Draw the tag
+                    drawCustomDecisionTag(tag);
+                });
+
+                e.consume();
+            }
+        });
+    }
+
+    private void clearDecisionTagHandler() {
+        // Reset canvas click handler to default
+        setupCanvasClickHandler();
+    }
+
+    private void drawCustomDecisionTag(CustomDecisionTag tag) {
+        // Create label for the tag text
+        Label label = new Label(tag.getText());
+        label.getStyleClass().add("decision-text");
+
+        // Create edit button
+        Button editButton = new Button("✎");
+        editButton.getStyleClass().add("edit-decision-button");
+        editButton.setVisible(false); // Only show on hover
+
+        // Create delete button
+        Button deleteButton = new Button("×");
+        deleteButton.getStyleClass().add("edit-decision-button");
+        deleteButton.setVisible(false); // Only show on hover
+
+        // Create container for the tag
+        HBox tagBox = new HBox(5, label, editButton, deleteButton);
+        tagBox.getStyleClass().addAll("decision-tag", "custom-decision-tag"); // Add distinct class
+        tagBox.setAlignment(Pos.CENTER);
+
+        // Position the tag
+        tagBox.setLayoutX(tag.getX());
+        tagBox.setLayoutY(tag.getY());
+
+        // Add hover effect to show buttons
+        tagBox.setOnMouseEntered(e -> {
+            editButton.setVisible(true);
+            deleteButton.setVisible(true);
+        });
+        tagBox.setOnMouseExited(e -> {
+            editButton.setVisible(false);
+            deleteButton.setVisible(false);
+        });
+
+        // Make draggable
+        tagBox.setOnMousePressed(e -> {
+            dragStartX = e.getSceneX();
+            dragStartY = e.getSceneY();
+
+            // For undo support
+            oldNodeX = tag.getX();
+            oldNodeY = tag.getY();
+
+            e.consume();
+        });
+
+        tagBox.setOnMouseDragged(e -> {
+            // Calculate offset considering scale
+            double offsetX = (e.getSceneX() - dragStartX) / scale.get();
+            double offsetY = (e.getSceneY() - dragStartY) / scale.get();
+
+            // Update position
+            double newX = tag.getX() + offsetX;
+            double newY = tag.getY() + offsetY;
+
+            tagBox.setLayoutX(newX);
+            tagBox.setLayoutY(newY);
+
+            // Update model - CORRECTED THIS LINE
+            tag.x = newX;
+            tag.y = newY;
+
+            // Update for next drag event
+            dragStartX = e.getSceneX();
+            dragStartY = e.getSceneY();
+
+            e.consume();
+        });
+
+        tagBox.setOnMouseReleased(e -> {
+            // Record last position for undo
+            if (oldNodeX != tagBox.getLayoutX() || oldNodeY != tagBox.getLayoutY()) {
+                // Update tag position in model
+                tag.x = tagBox.getLayoutX();
+                tag.y = tagBox.getLayoutY();
+
+                undoStack.push(new MoveDecisionTagAction(tag, oldNodeX, oldNodeY));
+            }
+            e.consume();
+        });
+
+        // Handle edit button click
+        editButton.setOnAction(e -> {
+            // Create a text input dialog
+            TextInputDialog dialog = new TextInputDialog(tag.getText());
+            dialog.setTitle("Edit Tag");
+            dialog.setHeaderText("Edit tag text");
+            dialog.setContentText("New text:");
+
+            // Store old text for undo
+            String oldText = tag.getText();
+
+            // Show the dialog and get the result
+            dialog.showAndWait().ifPresent(result -> {
+                tag.setText(result);
+                label.setText(result);
+
+                // Add to undo stack
+                undoStack.push(new EditDecisionTagAction(tag, oldText));
+            });
+        });
+
+        // Handle delete button click
+        deleteButton.setOnAction(e -> {
+            deleteCustomDecisionTag(tag);
+        });
+
+        // Also make the label itself clickable to edit
+        label.setOnMouseClicked(e -> {
+            if (e.getClickCount() == 2) {
+                editButton.fire(); // Simulate clicking the edit button
+            }
+        });
+
+        // Store reference to UI element
+        tag.setTagBox(tagBox);
+
+        // Add the tag to the canvas
+        canvas.getChildren().add(tagBox);
+    }
+
+    private void deleteCustomDecisionTag(CustomDecisionTag tag) {
+        // Remove from list
+        customDecisionTags.remove(tag);
+
+        // Remove visual element
+        if (tag.getTagBox() != null) {
+            canvas.getChildren().remove(tag.getTagBox());
+        }
+
+        // Add to undo stack
+        undoStack.push(new DeleteDecisionTagAction(tag));
     }
 
     private void toggleConnectionMode() {
@@ -413,7 +618,7 @@ public class AdventurePlanner extends Application {
         } else {
             // Reset the button when inactive
             toggleConnectionButton.setText("Enter Free Connection Mode");
-            toggleConnectionButton.setStyle("-fx-background-color: #6b4c8c; -fx-text-fill: #f0f0f0;"); // Back to purple
+            toggleConnectionButton.setStyle("-fx-background-color: #3b91c5; -fx-text-fill: #f0f0f0;"); // Back to purple
             statusLabel.setText("Adventure Game Planner - " + currentFileName);
             // Remove temp handlers
             clearConnectionHandlers();
@@ -740,6 +945,13 @@ public class AdventurePlanner extends Application {
             }
         }
 
+        for (CustomDecisionTag tag : customDecisionTags) {
+            if (tag.getTagBox() != null) {
+                canvas.getChildren().remove(tag.getTagBox());
+                tag.setTagBox(null);
+            }
+        }
+
         // Remove delete buttons
         canvas.getChildren().removeIf(node ->
                 node instanceof Button && node.getStyleClass().contains("connection-delete-button"));
@@ -758,6 +970,10 @@ public class AdventurePlanner extends Application {
         // Redraw custom connections
         for (CustomConnection connection : customConnections) {
             drawCustomConnection(connection);
+        }
+
+        for (CustomDecisionTag tag : customDecisionTags) {
+            drawCustomDecisionTag(tag);
         }
 
         adjustCanvasSize();
@@ -924,7 +1140,8 @@ public class AdventurePlanner extends Application {
         // Only remove standard connections (lines), but preserve custom connections
         canvas.getChildren().removeIf(node ->
                 (node instanceof Line && !node.getStyleClass().contains("custom-connection-line")) ||
-                        (node instanceof HBox && node.getStyleClass().contains("decision-tag")));
+                        (node instanceof HBox && node.getStyleClass().contains("decision-tag") &&
+                                !node.getStyleClass().contains("custom-decision-tag")));
 
         // Draw connections for each node
         for (StoryNode node : nodes.values()) {
@@ -971,7 +1188,7 @@ public class AdventurePlanner extends Application {
 
         // Create container for the decision tag
         HBox decisionTag = new HBox(5, label, editButton);
-        decisionTag.getStyleClass().add("decision-tag");
+        decisionTag.getStyleClass().addAll("decision-tag", "node-decision-tag"); // Add distinct class
         decisionTag.setAlignment(Pos.CENTER);
 
         // Set vertical position immediately
@@ -1100,6 +1317,8 @@ public class AdventurePlanner extends Application {
     private void newAdventure() {
         nodeBoxes.clear();
         nodes.clear();
+        customConnections.clear();
+        customDecisionTags.clear();
         selectedNode = null;
         rightPanel.setDisable(true);
         currentFileName = "Untitled Adventure";
@@ -1119,6 +1338,7 @@ public class AdventurePlanner extends Application {
                 nodes.clear();
                 nodeBoxes.clear();
                 customConnections.clear();
+                customDecisionTags.clear();
 
                 // Read nodes map
                 Map<String, StoryNode> loadedNodes = (Map<String, StoryNode>) in.readObject();
@@ -1141,12 +1361,28 @@ public class AdventurePlanner extends Application {
                         // Read connections for version 2+ files
                         List<CustomConnection> loadedConnections = (List<CustomConnection>) in.readObject();
                         customConnections.addAll(loadedConnections);
+
+                        // Read custom decision tags if they exist
+                        try {
+                            List<CustomDecisionTag> loadedTags = (List<CustomDecisionTag>) in.readObject();
+                            customDecisionTags.addAll(loadedTags);
+                        } catch (EOFException e) {
+                            // No tags in file, that's ok
+                        }
                     }
                     // If we directly stored connections (current implementation)
                     else if (nextObject instanceof List) {
                         @SuppressWarnings("unchecked")
                         List<CustomConnection> loadedConnections = (List<CustomConnection>) nextObject;
                         customConnections.addAll(loadedConnections);
+
+                        // Try to read custom decision tags
+                        try {
+                            List<CustomDecisionTag> loadedTags = (List<CustomDecisionTag>) in.readObject();
+                            customDecisionTags.addAll(loadedTags);
+                        } catch (EOFException e) {
+                            // No tags in file, that's ok
+                        }
                     }
                 } catch (EOFException e) {
                     // This is an older file that doesn't have custom connections - that's ok
@@ -1223,6 +1459,9 @@ public class AdventurePlanner extends Application {
                 // Write custom connections
                 out.writeObject(customConnections);
 
+                // Write custom decision tags
+                out.writeObject(customDecisionTags);
+
                 currentFileName = file.getAbsolutePath();
 
                 // Use a simple timer to hide the indicator after 200ms
@@ -1278,7 +1517,7 @@ public class AdventurePlanner extends Application {
         canvas.setOnMouseClicked(e -> {
             // Only clear selection if we're clicking on the canvas itself
             // and not on a node or something else
-            if (e.getTarget() == canvas) {
+            if (e.getTarget() == canvas && !decisionTagModeActive) {
                 clearConnectionSelection();
             }
         });
@@ -1469,6 +1708,122 @@ public class AdventurePlanner extends Application {
         public void undo() {
             customConnections.remove(connection);
             updateCanvas();
+        }
+    }
+
+    // Custom Decision Tag class
+    public static class CustomDecisionTag implements Serializable {
+        private static final long serialVersionUID = 1L;
+
+        private double x, y;
+        private String text;
+
+        // Transient field for UI element (not serialized)
+        private transient HBox tagBox;
+
+        public CustomDecisionTag(double x, double y, String text) {
+            this.x = x;
+            this.y = y;
+            this.text = text;
+        }
+
+        public double getX() { return x; }
+        public double getY() { return y; }
+        public String getText() { return text; }
+        public void setText(String text) { this.text = text; }
+
+        public HBox getTagBox() { return tagBox; }
+        public void setTagBox(HBox tagBox) { this.tagBox = tagBox; }
+    }
+
+    private class AddDecisionTagAction implements UndoableAction {
+        private CustomDecisionTag tag;
+
+        public AddDecisionTagAction(CustomDecisionTag tag) {
+            this.tag = tag;
+        }
+
+        @Override
+        public void undo() {
+            customDecisionTags.remove(tag);
+            if (tag.getTagBox() != null) {
+                canvas.getChildren().remove(tag.getTagBox());
+            }
+        }
+    }
+
+    private class DeleteDecisionTagAction implements UndoableAction {
+        private CustomDecisionTag tag;
+
+        public DeleteDecisionTagAction(CustomDecisionTag tag) {
+            this.tag = tag;
+        }
+
+        @Override
+        public void undo() {
+            customDecisionTags.add(tag);
+            drawCustomDecisionTag(tag);
+        }
+    }
+
+    private class MoveDecisionTagAction implements UndoableAction {
+        private CustomDecisionTag tag;
+        private double oldX, oldY;
+
+        public MoveDecisionTagAction(CustomDecisionTag tag, double oldX, double oldY) {
+            this.tag = tag;
+            this.oldX = oldX;
+            this.oldY = oldY;
+        }
+
+        @Override
+        public void undo() {
+            // Store current position for potential redo
+            double currentX = tag.getX();
+            double currentY = tag.getY();
+
+            // Restore old position
+            tag.x = oldX;
+            tag.y = oldY;
+
+            // Update visual position
+            if (tag.getTagBox() != null) {
+                tag.getTagBox().setLayoutX(oldX);
+                tag.getTagBox().setLayoutY(oldY);
+            }
+        }
+    }
+
+    private class EditDecisionTagAction implements UndoableAction {
+        private CustomDecisionTag tag;
+        private String oldText;
+
+        public EditDecisionTagAction(CustomDecisionTag tag, String oldText) {
+            this.tag = tag;
+            this.oldText = oldText;
+        }
+
+        @Override
+        public void undo() {
+            // Store current text
+            String currentText = tag.getText();
+
+            // Restore old text
+            tag.setText(oldText);
+
+            // Update visual text
+            if (tag.getTagBox() != null) {
+                // Find the label in the HBox
+                for (Node node : tag.getTagBox().getChildren()) {
+                    if (node instanceof Label) {
+                        ((Label) node).setText(oldText);
+                        break;
+                    }
+                }
+            }
+
+            // For future redo implementation
+            oldText = currentText;
         }
     }
 }

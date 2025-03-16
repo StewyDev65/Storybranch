@@ -158,6 +158,7 @@
     -fx-background-radius: 3px;
     -fx-padding: 10px;
     -fx-cursor: hand;
+    -fx-font-size: 16px;
 }
 
 .action-button:hover {
@@ -171,6 +172,7 @@
     -fx-background-radius: 3px;
     -fx-padding: 10px;
     -fx-cursor: hand;
+    -fx-font-size: 16px;
 }
 
 .delete-button:hover {
