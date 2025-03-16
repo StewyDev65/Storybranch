@@ -1532,7 +1532,7 @@ public class AdventurePlanner extends Application {
         Platform.exit();
         System.exit(0);
     }
-    
+
     // Story Node class
     public static class StoryNode implements Serializable {
         private static final long serialVersionUID = 1L;
