@@ -20,6 +20,29 @@ import javafx.scene.effect.DropShadow;
 import java.io.*;
 import java.util.*;
 
+/**
+ * AdventurePlanner.java
+ *
+ * A JavaFX application for visually planning and designing choose-your-own-adventure games.
+ * This tool allows game designers to create branching narratives with nodes (story branches),
+ * connections, decision points, and custom tags. The planner provides a drag-and-drop interface
+ * for organizing story elements and visualizing the flow of a narrative adventure.
+ *
+ * Key Features:
+ * - Create and connect story branches/nodes
+ * - Add decision text between branches
+ * - Place custom tags on the canvas
+ * - Create free-form connections
+ * - Save/load adventure designs
+ * - Zoom and pan canvas
+ * - Undo functionality
+ *
+ * The UI uses a dark theme optimized for creative work with a visual graph-based approach
+ * to storytelling that can be exported for implementation in game engines.
+ *
+ * @author Samuel Stewart
+ * @version 1.2
+ */
 public class AdventurePlanner extends Application {
 
     private boolean decisionTagModeActive = false;
@@ -31,8 +54,8 @@ public class AdventurePlanner extends Application {
     private ProgressBar savingProgressBar;
 
     private Stack<UndoableAction> undoStack = new Stack<>();
-    private Button toggleConnectionButton; // Make this a class member
-    private double oldNodeX, oldNodeY; // For tracking node position for undo
+    private Button toggleConnectionButton; // Button to toggle free connection mode
+    private double oldNodeX, oldNodeY; // Track node position for undo operations
 
     private StoryNode draggedNode = null;
 
@@ -58,10 +81,21 @@ public class AdventurePlanner extends Application {
     private Map<String, VBox> nodeBoxes = new HashMap<>();
     private Group canvasContainer;
 
+    /**
+     * Application entry point that launches the JavaFX application.
+     *
+     * @param args Command line arguments passed to the application
+     */
     public static void main(String[] args) {
         launch(args);
     }
 
+    /**
+     * Initializes the JavaFX application, sets up the UI components,
+     * and displays the main window.
+     *
+     * @param primaryStage The primary stage for this application
+     */
     @Override
     public void start(Stage primaryStage) {
         // Main layout
@@ -75,18 +109,18 @@ public class AdventurePlanner extends Application {
         // Create canvas for the story nodes
         canvas = new Pane();
         canvas.getStyleClass().add("canvas");
-        canvas.setPrefSize(3000, 2000); // Large initial size
+        canvas.setPrefSize(3000, 2000); // Large initial size for complex stories
         canvas.setStyle("-fx-background-color: #0a0b10;");
 
         canvasContainer = new Group(canvas);
 
-        // Create grid pattern programmatically instead of using CSS background-image
+        // Create grid pattern programmatically
         createGridPattern();
 
         // Set up the canvas click handler for selection clearing
         setupCanvasClickHandler();
 
-        // Add keyboard shortcuts
+        // Add keyboard shortcuts for common operations
         setupKeyboardShortcuts(primaryStage);
 
         // Make canvas scalable and scrollable
@@ -96,7 +130,7 @@ public class AdventurePlanner extends Application {
         scrollPane.setFitToWidth(true);
         scrollPane.setFitToHeight(true);
 
-        // Add zoom functionality
+        // Add zoom functionality with mouse wheel + Ctrl
         scrollPane.addEventFilter(ScrollEvent.ANY, event -> {
             if (event.isControlDown()) {
                 double scaleFactor = (event.getDeltaY() > 0) ? 1.05 : 0.95;
@@ -155,6 +189,11 @@ public class AdventurePlanner extends Application {
         primaryStage.show();
     }
 
+    /**
+     * Sets up keyboard shortcuts for common operations like save, open, new, and undo.
+     *
+     * @param primaryStage The primary stage to attach the keyboard shortcuts to
+     */
     private void setupKeyboardShortcuts(Stage primaryStage) {
         // Add keyboard shortcuts for common actions
         Scene scene = primaryStage.getScene();
@@ -240,6 +279,12 @@ public class AdventurePlanner extends Application {
         }
     }
 
+    /**
+     * Creates the menu bar with File, Story, View, and Help menus.
+     *
+     * @param primaryStage The primary stage to attach the menu actions to
+     * @return The created MenuBar
+     */
     private MenuBar createMenuBar(Stage primaryStage) {
         MenuBar menuBar = new MenuBar();
 
@@ -327,6 +372,12 @@ public class AdventurePlanner extends Application {
         return menuBar;
     }
 
+    /**
+     * Creates the right panel with controls for editing story nodes and toggling
+     * feature modes like connection creation and tag placement.
+     *
+     * @return The fully configured right panel as a VBox
+     */
     private VBox createRightPanel() {
         VBox panel = new VBox(10);
         panel.setPadding(new Insets(15));
@@ -387,10 +438,11 @@ public class AdventurePlanner extends Application {
                 deleteBranchButton
         );
 
+        // Connection mode toggle button
         toggleConnectionButton = new Button("Enter Free Connection Mode");
         toggleConnectionButton.getStyleClass().add("action-button");
         toggleConnectionButton.setMaxWidth(Double.MAX_VALUE);
-        toggleConnectionButton.setStyle("-fx-background-color: #3b91c5; -fx-text-fill: #f0f0f0;"); // Purple styling
+        toggleConnectionButton.setStyle("-fx-background-color: #3b91c5; -fx-text-fill: #f0f0f0;");
         toggleConnectionButton.setOnAction(e -> toggleConnectionMode());
 
         panel.getChildren().addAll(
@@ -398,10 +450,11 @@ public class AdventurePlanner extends Application {
                 toggleConnectionButton
         );
 
+        // Decision tag mode toggle button
         toggleDecisionTagButton = new Button("Enter Custom Tag Mode");
         toggleDecisionTagButton.getStyleClass().add("action-button");
         toggleDecisionTagButton.setMaxWidth(Double.MAX_VALUE);
-        toggleDecisionTagButton.setStyle("-fx-background-color: #5e4cc3; -fx-text-fill: #f0f0f0;"); // Green styling
+        toggleDecisionTagButton.setStyle("-fx-background-color: #5e4cc3; -fx-text-fill: #f0f0f0;");
         toggleDecisionTagButton.setOnAction(e -> toggleDecisionTagMode());
 
         panel.getChildren().addAll(
@@ -412,6 +465,10 @@ public class AdventurePlanner extends Application {
         return panel;
     }
 
+    /**
+     * Toggles the decision tag placement mode on and off.
+     * When active, allows users to place custom tags anywhere on the canvas.
+     */
     private void toggleDecisionTagMode() {
         // Exit connection mode if it's active
         if (connectionModeActive) {
@@ -437,6 +494,10 @@ public class AdventurePlanner extends Application {
         }
     }
 
+    /**
+     * Sets up mouse event handlers for the canvas when in decision tag mode.
+     * Allows users to click anywhere to place a new custom tag.
+     */
     private void setupDecisionTagHandler() {
         canvas.setOnMouseClicked(e -> {
             if (decisionTagModeActive) {
@@ -466,11 +527,21 @@ public class AdventurePlanner extends Application {
         });
     }
 
+    /**
+     * Clears the decision tag event handlers from the canvas and
+     * restores the default canvas click handler.
+     */
     private void clearDecisionTagHandler() {
         // Reset canvas click handler to default
         setupCanvasClickHandler();
     }
 
+    /**
+     * Creates and draws a visual representation of a custom decision tag on the canvas.
+     * Includes edit and delete buttons that appear on hover.
+     *
+     * @param tag The CustomDecisionTag to render on the canvas
+     */
     private void drawCustomDecisionTag(CustomDecisionTag tag) {
         // Create label for the tag text
         Label label = new Label(tag.getText());
@@ -529,7 +600,7 @@ public class AdventurePlanner extends Application {
             tagBox.setLayoutX(newX);
             tagBox.setLayoutY(newY);
 
-            // Update model - CORRECTED THIS LINE
+            // Update model position
             tag.x = newX;
             tag.y = newY;
 
@@ -592,6 +663,12 @@ public class AdventurePlanner extends Application {
         canvas.getChildren().add(tagBox);
     }
 
+    /**
+     * Removes a custom decision tag from the canvas and data model.
+     * Adds the deletion to the undo stack.
+     *
+     * @param tag The CustomDecisionTag to delete
+     */
     private void deleteCustomDecisionTag(CustomDecisionTag tag) {
         // Remove from list
         customDecisionTags.remove(tag);
@@ -605,6 +682,10 @@ public class AdventurePlanner extends Application {
         undoStack.push(new DeleteDecisionTagAction(tag));
     }
 
+    /**
+     * Toggles the free connection mode on and off.
+     * When active, allows users to create arbitrary connections between any points.
+     */
     private void toggleConnectionMode() {
         connectionModeActive = !connectionModeActive;
 
@@ -625,6 +706,10 @@ public class AdventurePlanner extends Application {
         }
     }
 
+    /**
+     * Sets up mouse event handlers for the canvas when in connection mode.
+     * Handles mouse press, drag, and release to create new connections.
+     */
     private void setupConnectionHandlers() {
         canvas.setOnMousePressed(e -> {
             if (connectionModeActive) {
@@ -675,12 +760,21 @@ public class AdventurePlanner extends Application {
         });
     }
 
+    /**
+     * Clears connection-related mouse event handlers from the canvas.
+     */
     private void clearConnectionHandlers() {
         canvas.setOnMousePressed(null);
         canvas.setOnMouseDragged(null);
         canvas.setOnMouseReleased(null);
     }
 
+    /**
+     * Creates and draws a visual representation of a custom connection on the canvas.
+     * Includes a visible line, arrow head, and an invisible wider line for easier selection.
+     *
+     * @param connection The CustomConnection to render on the canvas
+     */
     private void drawCustomConnection(CustomConnection connection) {
         // Create the visible line with original styling
         Line visibleLine = new Line(
@@ -731,10 +825,10 @@ public class AdventurePlanner extends Application {
         javafx.scene.shape.Polygon arrowHead = new javafx.scene.shape.Polygon();
         arrowHead.getPoints().addAll(
                 connection.getEndX(), connection.getEndY(),
-                connection.getEndX() - arrowLength * Math.cos(angle - Math.PI/6),
-                connection.getEndY() - arrowLength * Math.sin(angle - Math.PI/6),
-                connection.getEndX() - arrowLength * Math.cos(angle + Math.PI/6),
-                connection.getEndY() - arrowLength * Math.sin(angle + Math.PI/6)
+                connection.getEndX() - arrowLength * Math.cos(angle - Math.PI / 6),
+                connection.getEndY() - arrowLength * Math.sin(angle - Math.PI / 6),
+                connection.getEndX() - arrowLength * Math.cos(angle + Math.PI / 6),
+                connection.getEndY() - arrowLength * Math.sin(angle + Math.PI / 6)
         );
         arrowHead.setFill(javafx.scene.paint.Color.rgb(107, 76, 140)); // Purple color
         arrowHead.getStyleClass().add("custom-connection-arrow");
@@ -759,14 +853,18 @@ public class AdventurePlanner extends Application {
         // Store references to the visual elements in the connection object
         connection.setLine(visibleLine);
         connection.setArrowHead(arrowHead);
-        connection.setSelectionLine(selectionLine); // Store the selection line too
+        connection.setSelectionLine(selectionLine); // Invisible line used for easier selection
 
         // Add all elements to the canvas in the right order
-        canvas.getChildren().add(0, visibleLine); // Visible line at the bottom
+        canvas.getChildren().add(0, visibleLine); // Visible line at the bottom z-index
         canvas.getChildren().add(arrowHead);
-        canvas.getChildren().add(selectionLine); // Invisible selection line on top
+        canvas.getChildren().add(selectionLine); // Invisible selection line on top for easier targeting
     }
 
+    /**
+     * Clears the current connection selection, removing highlights and delete buttons.
+     * Called when selecting a new connection or clicking on an empty area.
+     */
     private void clearConnectionSelection() {
         // Remove selected-connection-line class from ALL lines
         for (Node node : canvas.getChildren()) {
@@ -784,6 +882,13 @@ public class AdventurePlanner extends Application {
         selectedConnection = null;
     }
 
+    /**
+     * Shows a delete button near the middle of a selected connection.
+     * Allows users to easily delete connections by clicking the button.
+     *
+     * @param connection The selected connection
+     * @param line       The line element of the connection
+     */
     private void showConnectionDeleteButton(CustomConnection connection, Line line) {
         // Create a delete button
         Button deleteButton = new Button("X");
@@ -793,7 +898,7 @@ public class AdventurePlanner extends Application {
         double midX = (connection.getStartX() + connection.getEndX()) / 2;
         double midY = (connection.getStartY() + connection.getEndY()) / 2;
 
-        deleteButton.setLayoutX(midX - 10);
+        deleteButton.setLayoutX(midX - 10); // Offset to center button on the midpoint
         deleteButton.setLayoutY(midY - 10);
 
         // Set the action to delete the connection
@@ -804,6 +909,12 @@ public class AdventurePlanner extends Application {
         canvas.getChildren().add(deleteButton);
     }
 
+    /**
+     * Deletes a custom connection from both the data model and visual canvas.
+     * Adds the deletion to the undo stack for possible reversal.
+     *
+     * @param connection The connection to delete
+     */
     private void deleteCustomConnection(CustomConnection connection) {
         // Remove the connection from our list
         customConnections.remove(connection);
@@ -825,7 +936,7 @@ public class AdventurePlanner extends Application {
         canvas.getChildren().removeIf(node ->
                 node instanceof Button && node.getStyleClass().contains("connection-delete-button"));
 
-        // Add to undo stack
+        // Add to undo stack for potential reversal later
         undoStack.push(new DeleteConnectionAction(connection));
 
         // Clear the selection
@@ -835,28 +946,40 @@ public class AdventurePlanner extends Application {
         updateCanvas();
     }
 
+    /**
+     * Creates the initial starting node for a new adventure.
+     * This is the root node of the story from which all branches stem.
+     */
     private void createInitialNode() {
         startNode = new StoryNode("1", "Start Your Adventure", "This is where your story begins...");
-        startNode.setPosition(300, 100);
+        startNode.setPosition(300, 100); // Position near the top left of the canvas
         nodes.put(startNode.getId(), startNode);
         drawNode(startNode);
     }
 
+    /**
+     * Adds a child node to a parent node, creating a new branch in the story.
+     * Positions the child based on existing children and selects it for editing.
+     *
+     * @param parent The parent node to add a child to
+     */
     private void addChildNode(StoryNode parent) {
+        // Create a unique ID for the new node
         String newId = UUID.randomUUID().toString().substring(0, 8);
         StoryNode child = new StoryNode(newId, "New Branch", "Describe what happens in this branch...");
 
         // Position child based on parent's position and existing children
         int childCount = parent.getChildren().size();
+        // Calculate position to spread children horizontally
         double x = parent.getX() + (childCount * 200) - (parent.getChildren().size() * 100);
-        double y = parent.getY() + 200;
+        double y = parent.getY() + 200; // Position below parent
         child.setPosition(x, y);
 
-        // Add connections
+        // Add connections in the data model
         parent.addChild(child);
         nodes.put(child.getId(), child);
 
-        // Draw the node and connections
+        // Draw the node and connections on the canvas
         drawNode(child);
         drawConnections();
 
@@ -866,13 +989,19 @@ public class AdventurePlanner extends Application {
             prevSelectedBox.getStyleClass().remove("selected-node");
         }
 
-        // Set child as selected
+        // Set child as selected for immediate editing
         selectNode(child);
     }
 
+    /**
+     * Deletes a node and all its descendants from the story.
+     * Cannot delete the start node of the adventure.
+     *
+     * @param node The node to delete
+     */
     private void deleteNode(StoryNode node) {
         if (node.equals(startNode)) {
-            return; // Don't delete start node
+            return; // Don't delete start node - it's the root of the adventure
         }
 
         // Remove from parent's children
@@ -895,17 +1024,30 @@ public class AdventurePlanner extends Application {
 
         // Clear selection and update canvas
         selectedNode = null;
-        rightPanel.setDisable(true);
+        rightPanel.setDisable(true); // Disable editing panel
         drawConnections(); // Update connections after removing nodes
     }
 
+    /**
+     * Recursively collects a node and all its descendants for deletion.
+     * Ensures the entire branch is removed when a node is deleted.
+     *
+     * @param node        The node to start collection from
+     * @param descendants The list to populate with nodes to delete
+     */
     private void collectDescendants(StoryNode node, List<StoryNode> descendants) {
         descendants.add(node);
+        // Create a copy of children to avoid ConcurrentModificationException
         for (StoryNode child : new ArrayList<>(node.getChildren())) {
             collectDescendants(child, descendants);
         }
     }
 
+    /**
+     * Selects a node for editing, highlighting it visually and updating the right panel.
+     *
+     * @param node The node to select
+     */
     private void selectNode(StoryNode node) {
         // Clear previous selection visual if there was one
         if (selectedNode != null && nodeBoxes.containsKey(selectedNode.getId())) {
@@ -914,9 +1056,10 @@ public class AdventurePlanner extends Application {
         }
 
         selectedNode = node;
+        // Update editing fields with node content
         titleField.setText(node.getTitle());
         descriptionArea.setText(node.getDescription());
-        rightPanel.setDisable(false);
+        rightPanel.setDisable(false); // Enable the editing panel
 
         // Update visual selection on canvas
         if (nodeBoxes.containsKey(node.getId())) {
@@ -925,6 +1068,10 @@ public class AdventurePlanner extends Application {
         }
     }
 
+    /**
+     * Updates the entire canvas by redrawing all nodes, connections, and custom elements.
+     * Called after significant changes to ensure consistent visualization.
+     */
     private void updateCanvas() {
         // Store existing custom connection references
         CustomConnection tempSelectedConnection = selectedConnection;
@@ -945,6 +1092,7 @@ public class AdventurePlanner extends Application {
             }
         }
 
+        // Remove all custom decision tags
         for (CustomDecisionTag tag : customDecisionTags) {
             if (tag.getTagBox() != null) {
                 canvas.getChildren().remove(tag.getTagBox());
@@ -972,10 +1120,12 @@ public class AdventurePlanner extends Application {
             drawCustomConnection(connection);
         }
 
+        // Redraw custom decision tags
         for (CustomDecisionTag tag : customDecisionTags) {
             drawCustomDecisionTag(tag);
         }
 
+        // Adjust canvas size to fit all content
         adjustCanvasSize();
 
         // Restore visual selection if needed
@@ -994,12 +1144,22 @@ public class AdventurePlanner extends Application {
         }
     }
 
+    /**
+     * Draws all story nodes on the canvas.
+     * Called during full canvas updates.
+     */
     private void drawAllNodes() {
         for (StoryNode node : nodes.values()) {
             drawNode(node);
         }
     }
 
+    /**
+     * Creates and draws a visual representation of a story node on the canvas.
+     * Includes event handlers for selection, dragging, and tooltips.
+     *
+     * @param node The story node to draw
+     */
     private void drawNode(StoryNode node) {
         VBox nodeBox = new VBox(5);
         nodeBox.setLayoutX(node.getX());
@@ -1020,7 +1180,7 @@ public class AdventurePlanner extends Application {
             nodeBox.getStyleClass().add("start-node");
         }
 
-        // Add drop shadow effect
+        // Add drop shadow effect for depth
         DropShadow dropShadow = new DropShadow();
         dropShadow.setColor(Color.rgb(0, 0, 0, 0.4));
         dropShadow.setOffsetX(3);
@@ -1028,6 +1188,7 @@ public class AdventurePlanner extends Application {
         dropShadow.setRadius(5);
         nodeBox.setEffect(dropShadow);
 
+        // Create and add title
         Text titleText = new Text(node.getTitle());
         titleText.getStyleClass().add("node-title");
 
@@ -1048,9 +1209,9 @@ public class AdventurePlanner extends Application {
             nodeBox.getChildren().add(titleText);
         }
 
+        // Add node ID label
         Label idLabel = new Label("ID: " + node.getId());
         idLabel.getStyleClass().add("node-id");
-
         nodeBox.getChildren().add(idLabel);
 
         // Make node draggable with continuous updates
@@ -1098,7 +1259,7 @@ public class AdventurePlanner extends Application {
                 dragStartX = e.getSceneX();
                 dragStartY = e.getSceneY();
 
-                // Update connections
+                // Update connections to follow the node
                 drawConnections();
             }
 
@@ -1128,6 +1289,7 @@ public class AdventurePlanner extends Application {
             }
         });
 
+        // Add tooltip with full description
         Tooltip tooltip = new Tooltip(node.getDescription());
         tooltip.setShowDelay(javafx.util.Duration.millis(250));
         tooltip.setWrapText(true);
@@ -1136,6 +1298,10 @@ public class AdventurePlanner extends Application {
         Tooltip.install(nodeBox, tooltip);
     }
 
+    /**
+     * Draws all connections between nodes on the canvas.
+     * Only removes standard connections while preserving custom connections.
+     */
     private void drawConnections() {
         // Only remove standard connections (lines), but preserve custom connections
         canvas.getChildren().removeIf(node ->
@@ -1151,12 +1317,19 @@ public class AdventurePlanner extends Application {
         }
     }
 
+    /**
+     * Draws a single connection between a parent and child node,
+     * including a decision tag at the midpoint.
+     *
+     * @param parent The parent node (source of the connection)
+     * @param child  The child node (destination of the connection)
+     */
     private void drawConnection(StoryNode parent, StoryNode child) {
-        // Calculate center points
-        double startX = parent.getX() + 90;
-        double startY = parent.getY() + 40;
-        double endX = child.getX() + 90;
-        double endY = child.getY();
+        // Calculate center points for connection line
+        double startX = parent.getX() + 90; // Center X of parent node
+        double startY = parent.getY() + 40; // Below center of parent node
+        double endX = child.getX() + 90; // Center X of child node
+        double endY = child.getY(); // Top of child node
 
         Line line = new Line(startX, startY, endX, endY);
         line.getStyleClass().add("connection-line");
@@ -1169,12 +1342,24 @@ public class AdventurePlanner extends Application {
         addDecisionTag(parent, child, startX, startY, endX, endY);
     }
 
+    /**
+     * Adds a decision tag at the midpoint of a connection between two nodes.
+     * The tag displays the decision text that leads from parent to child.
+     *
+     * @param parent The parent node
+     * @param child  The child node
+     * @param startX The starting X coordinate of the connection
+     * @param startY The starting Y coordinate of the connection
+     * @param endX   The ending X coordinate of the connection
+     * @param endY   The ending Y coordinate of the connection
+     */
     private void addDecisionTag(StoryNode parent, StoryNode child, double startX, double startY, double endX, double endY) {
+        // Calculate position along the connection line (56% from start point)
         final double positionRatio = 0.56;
         final double posX = startX + positionRatio * (endX - startX);
         final double posY = startY + positionRatio * (endY - startY);
 
-        // Get decision text
+        // Get decision text from parent node
         String decisionText = parent.getDecisionText(child.getId());
 
         // Create a label for the decision text
@@ -1192,7 +1377,7 @@ public class AdventurePlanner extends Application {
         decisionTag.setAlignment(Pos.CENTER);
 
         // Set vertical position immediately
-        decisionTag.setLayoutY(posY - 15);
+        decisionTag.setLayoutY(posY - 15); // Offset to center vertically
 
         // Center consistently using a width property listener
         decisionTag.widthProperty().addListener((obs, oldWidth, newWidth) -> {
@@ -1235,10 +1420,15 @@ public class AdventurePlanner extends Application {
         canvas.getChildren().add(decisionTag);
     }
 
+    /**
+     * Adjusts the canvas size to ensure all nodes are visible.
+     * Expands the canvas if needed but doesn't shrink it.
+     */
     private void adjustCanvasSize() {
-        double maxX = 1000;
-        double maxY = 600;
+        double maxX = 1000; // Minimum width
+        double maxY = 600;  // Minimum height
 
+        // Find the maximum X and Y coordinates needed
         for (StoryNode node : nodes.values()) {
             maxX = Math.max(maxX, node.getX() + 250);
             maxY = Math.max(maxY, node.getY() + 250);
@@ -1257,14 +1447,19 @@ public class AdventurePlanner extends Application {
         }
     }
 
+    /**
+     * Updates the canvas after zooming to ensure proper display of all elements.
+     * Adjusts the canvas size if needed to fill the viewport.
+     */
     private void updateAfterZoom() {
-        // This method ensures everything is properly scaled and visible after zooming
+        // Redraw connections to ensure they scale properly
         drawConnections();
 
         // Make sure the background covers the visible area
         double viewportWidth = scrollPane.getViewportBounds().getWidth();
         double viewportHeight = scrollPane.getViewportBounds().getHeight();
 
+        // Calculate required canvas size based on zoom level
         double requiredWidth = viewportWidth / scale.get();
         double requiredHeight = viewportHeight / scale.get();
 
@@ -1278,14 +1473,18 @@ public class AdventurePlanner extends Application {
         }
     }
 
+    /**
+     * Creates a grid pattern of dots on the canvas for visual reference.
+     * Clears existing grid before creating a new one.
+     */
     private void createGridPattern() {
         // Clear existing grid dots
         canvas.getChildren().removeIf(node ->
-                node instanceof Group && ((Group)node).getStyleClass().contains("grid-group"));
+                node instanceof Group && ((Group) node).getStyleClass().contains("grid-group"));
 
         // Create grid of dots
-        int spacing = 30;
-        int dotSize = 1;
+        int spacing = 30; // Distance between dots
+        int dotSize = 1;  // Size of each dot
         Color dotColor = Color.rgb(40, 46, 63); // #282830
 
         // Calculate how many dots we need based on the canvas size
@@ -1295,6 +1494,7 @@ public class AdventurePlanner extends Application {
         Group gridGroup = new Group();
         gridGroup.getStyleClass().add("grid-group");
 
+        // Create all dots in a single group for better performance
         for (int i = 0; i < dotsX; i++) {
             for (int j = 0; j < dotsY; j++) {
                 int x = i * spacing;
@@ -1305,27 +1505,40 @@ public class AdventurePlanner extends Application {
             }
         }
 
-        // Add the entire grid group to the canvas at the beginning
+        // Add the entire grid group to the canvas at the beginning (bottom z-index)
         canvas.getChildren().add(0, gridGroup);
     }
 
+    /**
+     * Adds decision tag styles to the application.
+     * Uses the external CSS file for styling.
+     */
     private void addDecisionTagStyles() {
-        // We'll use the external CSS file instead of programmatic styles
-        // No implementation needed here since styles are defined in style.css
+        // Uses the external CSS file instead of programmatic styles
+        // No implementation needed since styles are defined in style.css
     }
 
+    /**
+     * Creates a new empty adventure, clearing all existing nodes and connections.
+     */
     private void newAdventure() {
         nodeBoxes.clear();
         nodes.clear();
         customConnections.clear();
         customDecisionTags.clear();
         selectedNode = null;
-        rightPanel.setDisable(true);
+        rightPanel.setDisable(true); // Disable editing panel
         currentFileName = "Untitled Adventure";
         statusLabel.setText("Adventure Game Planner - " + currentFileName);
-        createInitialNode();
+        createInitialNode(); // Create the starting node for the new adventure
     }
 
+    /**
+     * Opens an adventure file from disk, loading all nodes, connections, and tags.
+     * Supports different file versions and gracefully handles format differences.
+     *
+     * @param stage The primary stage for displaying file chooser and alerts
+     */
     private void openAdventure(Stage stage) {
         FileChooser fileChooser = new FileChooser();
         fileChooser.setTitle("Open Adventure File");
@@ -1367,7 +1580,7 @@ public class AdventurePlanner extends Application {
                             List<CustomDecisionTag> loadedTags = (List<CustomDecisionTag>) in.readObject();
                             customDecisionTags.addAll(loadedTags);
                         } catch (EOFException e) {
-                            // No tags in file, that's ok
+                            // No tags in file, that's ok - older version might not have them
                         }
                     }
                     // If we directly stored connections (current implementation)
@@ -1381,7 +1594,7 @@ public class AdventurePlanner extends Application {
                             List<CustomDecisionTag> loadedTags = (List<CustomDecisionTag>) in.readObject();
                             customDecisionTags.addAll(loadedTags);
                         } catch (EOFException e) {
-                            // No tags in file, that's ok
+                            // No tags in file, that's ok - older version might not have them
                         }
                     }
                 } catch (EOFException e) {
@@ -1409,6 +1622,10 @@ public class AdventurePlanner extends Application {
         }
     }
 
+    /**
+     * Performs an undo operation by popping an action off the undo stack
+     * and executing its undo method.
+     */
     private void undo() {
         if (!undoStack.isEmpty()) {
             UndoableAction action = undoStack.pop();
@@ -1416,6 +1633,13 @@ public class AdventurePlanner extends Application {
         }
     }
 
+    /**
+     * Saves the current adventure to a file.
+     * Can perform a regular save or a "save as" operation to choose a new file.
+     *
+     * @param stage  The primary stage for displaying file chooser and alerts
+     * @param saveAs Whether to perform a "save as" operation to select a new file
+     */
     private void saveAdventure(Stage stage, boolean saveAs) {
         File file = null;
 
@@ -1443,7 +1667,7 @@ public class AdventurePlanner extends Application {
         }
 
         if (file != null) {
-            // Show saving indicator with fake progress
+            // Show saving indicator with progress animation
             showSavingIndicator();
 
             // Create a final copy of the file for use in the lambda
@@ -1464,12 +1688,12 @@ public class AdventurePlanner extends Application {
 
                 currentFileName = file.getAbsolutePath();
 
-                // Use a simple timer to hide the indicator after 200ms
+                // Use a simple timer to hide the indicator after 200ms for better UX
                 Timer timer = new Timer();
                 timer.schedule(new TimerTask() {
                     @Override
                     public void run() {
-                        javafx.application.Platform.runLater(() -> {
+                        Platform.runLater(() -> {
                             statusLabel.setText("Adventure Game Planner - " + savedFile.getName());
                             hideSavingIndicator();
                         });
@@ -1488,7 +1712,9 @@ public class AdventurePlanner extends Application {
         }
     }
 
-    // Setup status bar method
+    /**
+     * Sets up the status bar with a progress indicator for save operations.
+     */
     private void setupStatusBar() {
         // Create progress bar for saving indicator
         savingProgressBar = new ProgressBar();
@@ -1497,32 +1723,46 @@ public class AdventurePlanner extends Application {
         savingProgressBar.getStyleClass().add("saving-progress");
 
         // Update the status bar creation to include the progress bar
-        ((HBox)statusLabel.getParent()).getChildren().add(savingProgressBar);
+        ((HBox) statusLabel.getParent()).getChildren().add(savingProgressBar);
         HBox.setHgrow(statusLabel, Priority.ALWAYS); // Make label take all available space
         HBox.setMargin(savingProgressBar, new Insets(0, 10, 0, 0)); // Add right margin
     }
 
-    // Simplified indicator methods
+    /**
+     * Shows the saving indicator in the status bar.
+     * Displays an indeterminate progress bar to indicate activity.
+     */
     private void showSavingIndicator() {
         statusLabel.setText("Saving...");
         savingProgressBar.setProgress(ProgressBar.INDETERMINATE_PROGRESS);
         savingProgressBar.setVisible(true);
     }
 
+    /**
+     * Hides the saving indicator when the save operation is complete.
+     */
     private void hideSavingIndicator() {
         savingProgressBar.setVisible(false);
     }
 
+    /**
+     * Sets up the canvas click handler to clear selections when clicking
+     * on empty areas of the canvas.
+     */
     private void setupCanvasClickHandler() {
         canvas.setOnMouseClicked(e -> {
-            // Only clear selection if we're clicking on the canvas itself
-            // and not on a node or something else
+            // Only clear selection if we're clicking on the canvas itself (not on a node)
+            // and not in tag placement mode
             if (e.getTarget() == canvas && !decisionTagModeActive) {
                 clearConnectionSelection();
             }
         });
     }
 
+    /**
+     * Handles application shutdown by canceling timers and closing the application.
+     * Called when the application is closed.
+     */
     @Override
     public void stop() {
         // Cancel any running timers
@@ -1533,60 +1773,125 @@ public class AdventurePlanner extends Application {
         System.exit(0);
     }
 
-    // Story Node class
+    /**
+     * Represents a node in the story graph, containing branch information and
+     * connections to other nodes.
+     * <p>
+     * StoryNodes form the backbone of the adventure structure, with each node
+     * representing a decision point or story segment.
+     */
     public static class StoryNode implements Serializable {
         private static final long serialVersionUID = 1L;
 
-        private String id;
-        private String title;
-        private String description;
-        private double x, y;
+        private String id;           // Unique identifier for the node
+        private String title;        // Title displayed in the node
+        private String description;  // Detailed description of this branch
+        private double x, y;         // Position on the canvas
         private Map<String, String> childDecisions = new HashMap<>(); // Maps child node ID to decision text
-        private List<StoryNode> children = new ArrayList<>();
+        private List<StoryNode> children = new ArrayList<>(); // Direct child nodes
 
+        /**
+         * Creates a new story node with the specified ID, title, and description.
+         *
+         * @param id          Unique identifier for the node
+         * @param title       Title displayed in the node box
+         * @param description Detailed description of this story branch
+         */
         public StoryNode(String id, String title, String description) {
             this.id = id;
             this.title = title;
             this.description = description;
         }
 
+        /**
+         * Gets the unique ID of this node.
+         *
+         * @return The node's ID
+         */
         public String getId() {
             return id;
         }
 
+        /**
+         * Gets the title of this node.
+         *
+         * @return The node's title
+         */
         public String getTitle() {
             return title;
         }
 
+        /**
+         * Sets the title of this node.
+         *
+         * @param title The new title for the node
+         */
         public void setTitle(String title) {
             this.title = title;
         }
 
+        /**
+         * Gets the description of this node.
+         *
+         * @return The node's description
+         */
         public String getDescription() {
             return description;
         }
 
+        /**
+         * Sets the description of this node.
+         *
+         * @param description The new description for the node
+         */
         public void setDescription(String description) {
             this.description = description;
         }
 
+        /**
+         * Gets the X coordinate of this node on the canvas.
+         *
+         * @return The node's X position
+         */
         public double getX() {
             return x;
         }
 
+        /**
+         * Gets the Y coordinate of this node on the canvas.
+         *
+         * @return The node's Y position
+         */
         public double getY() {
             return y;
         }
 
+        /**
+         * Sets the position of this node on the canvas.
+         *
+         * @param x The X coordinate
+         * @param y The Y coordinate
+         */
         public void setPosition(double x, double y) {
             this.x = x;
             this.y = y;
         }
 
+        /**
+         * Gets the list of child nodes connected to this node.
+         *
+         * @return The list of child nodes
+         */
         public List<StoryNode> getChildren() {
             return children;
         }
 
+        /**
+         * Adds a child node to this node if it doesn't already exist.
+         * Sets a default decision text for the connection.
+         *
+         * @param child The child node to add
+         */
         public void addChild(StoryNode child) {
             if (!children.contains(child)) {
                 children.add(child);
@@ -1594,32 +1899,61 @@ public class AdventurePlanner extends Application {
             }
         }
 
+        /**
+         * Removes a child node from this node and its decision text.
+         *
+         * @param child The child node to remove
+         */
         public void removeChild(StoryNode child) {
             children.remove(child);
             childDecisions.remove(child.getId());
         }
 
+        /**
+         * Gets the decision text for a connection to a child node.
+         * Returns a default value if no text is set.
+         *
+         * @param childId The ID of the child node
+         * @return The decision text for the connection
+         */
         public String getDecisionText(String childId) {
             return childDecisions.getOrDefault(childId, "Make a choice...");
         }
 
+        /**
+         * Sets the decision text for a connection to a child node.
+         *
+         * @param childId The ID of the child node
+         * @param text    The decision text to display
+         */
         public void setDecisionText(String childId, String text) {
             childDecisions.put(childId, text);
         }
     }
 
-    // Custom Connection class
+    /**
+     * Represents a custom connection between any two points on the canvas.
+     * These connections are free-form and not tied to specific story nodes.
+     */
     public static class CustomConnection implements Serializable {
         private static final long serialVersionUID = 1L;
 
-        private double startX, startY;
-        private double endX, endY;
+        private double startX, startY; // Start point coordinates
+        private double endX, endY;     // End point coordinates
 
         // Transient fields for UI elements (not serialized)
-        private transient Line line;
-        private transient Line selectionLine;
-        private transient javafx.scene.shape.Polygon arrowHead;
+        private transient Line line;             // Visible line element
+        private transient Line selectionLine;    // Invisible wider line for easier selection
+        private transient javafx.scene.shape.Polygon arrowHead; // Arrow at the end of the line
 
+        /**
+         * Creates a new custom connection between two points.
+         *
+         * @param startX X coordinate of start point
+         * @param startY Y coordinate of start point
+         * @param endX   X coordinate of end point
+         * @param endY   Y coordinate of end point
+         */
         public CustomConnection(double startX, double startY, double endX, double endY) {
             this.startX = startX;
             this.startY = startY;
@@ -1627,37 +1961,83 @@ public class AdventurePlanner extends Application {
             this.endY = endY;
         }
 
-        public double getStartX() { return startX; }
-        public double getStartY() { return startY; }
-        public double getEndX() { return endX; }
-        public double getEndY() { return endY; }
+        // Getters and setters
+        public double getStartX() {
+            return startX;
+        }
 
-        public Line getLine() { return line; }
-        public void setLine(Line line) { this.line = line; }
+        public double getStartY() {
+            return startY;
+        }
 
-        public Line getSelectionLine() { return selectionLine; }
-        public void setSelectionLine(Line selectionLine) { this.selectionLine = selectionLine; }
+        public double getEndX() {
+            return endX;
+        }
 
-        public javafx.scene.shape.Polygon getArrowHead() { return arrowHead; }
-        public void setArrowHead(javafx.scene.shape.Polygon arrowHead) { this.arrowHead = arrowHead; }
+        public double getEndY() {
+            return endY;
+        }
+
+        public Line getLine() {
+            return line;
+        }
+
+        public void setLine(Line line) {
+            this.line = line;
+        }
+
+        public Line getSelectionLine() {
+            return selectionLine;
+        }
+
+        public void setSelectionLine(Line selectionLine) {
+            this.selectionLine = selectionLine;
+        }
+
+        public javafx.scene.shape.Polygon getArrowHead() {
+            return arrowHead;
+        }
+
+        public void setArrowHead(javafx.scene.shape.Polygon arrowHead) {
+            this.arrowHead = arrowHead;
+        }
     }
 
-    // Interface for undoable actions
+    /**
+     * Interface for actions that can be undone.
+     * All undoable operations in the application implement this interface.
+     */
     private interface UndoableAction {
+        /**
+         * Performs the undo operation, reverting the action's effects.
+         */
         void undo();
     }
 
-    // Node movement undo action
+    /**
+     * Undoable action for moving a node on the canvas.
+     * Stores the old position to restore it when undoing.
+     */
     private class MoveNodeAction implements UndoableAction {
-        private StoryNode node;
-        private double oldX, oldY;
+        private StoryNode node;  // The node that was moved
+        private double oldX, oldY; // The original position before moving
 
+        /**
+         * Creates a new move node action.
+         *
+         * @param node The node that was moved
+         * @param oldX The original X position
+         * @param oldY The original Y position
+         */
         public MoveNodeAction(StoryNode node, double oldX, double oldY) {
             this.node = node;
             this.oldX = oldX;
             this.oldY = oldY;
         }
 
+        /**
+         * Undoes the move by restoring the node to its original position.
+         */
         @Override
         public void undo() {
             // Store current position in case we want to redo later
@@ -1674,75 +2054,138 @@ public class AdventurePlanner extends Application {
                 nodeBox.setLayoutY(oldY);
             }
 
-            // Update connections
+            // Update connections to reflect the node's new position
             drawConnections();
         }
     }
 
+    /**
+     * Undoable action for deleting a custom connection.
+     * Stores the connection to restore it when undoing.
+     */
     private class DeleteConnectionAction implements UndoableAction {
-        private CustomConnection connection;
+        private CustomConnection connection; // The connection that was deleted
 
+        /**
+         * Creates a new delete connection action.
+         *
+         * @param connection The connection that was deleted
+         */
         public DeleteConnectionAction(CustomConnection connection) {
             this.connection = connection;
         }
 
+        /**
+         * Undoes the deletion by adding the connection back.
+         */
         @Override
         public void undo() {
-            // Add the connection back
+            // Add the connection back to the data model
             customConnections.add(connection);
 
-            // Redraw the connection
+            // Redraw the connection on the canvas
             drawCustomConnection(connection);
         }
     }
 
-    // Connection creation undo action
+    /**
+     * Undoable action for adding a custom connection.
+     * Removes the connection when undoing.
+     */
     private class AddConnectionAction implements UndoableAction {
-        private CustomConnection connection;
+        private CustomConnection connection; // The connection that was added
 
+        /**
+         * Creates a new add connection action.
+         *
+         * @param connection The connection that was added
+         */
         public AddConnectionAction(CustomConnection connection) {
             this.connection = connection;
         }
 
+        /**
+         * Undoes the addition by removing the connection.
+         */
         @Override
         public void undo() {
             customConnections.remove(connection);
-            updateCanvas();
+            updateCanvas(); // Redraw everything without this connection
         }
     }
 
-    // Custom Decision Tag class
+    /**
+     * Represents a custom decision tag placed anywhere on the canvas.
+     * These tags can contain notes, hints, or any other text.
+     */
     public static class CustomDecisionTag implements Serializable {
         private static final long serialVersionUID = 1L;
 
+        // Position and content
         private double x, y;
         private String text;
 
         // Transient field for UI element (not serialized)
         private transient HBox tagBox;
 
+        /**
+         * Creates a new custom decision tag at the specified position.
+         *
+         * @param x    The X coordinate on the canvas
+         * @param y    The Y coordinate on the canvas
+         * @param text The text content of the tag
+         */
         public CustomDecisionTag(double x, double y, String text) {
             this.x = x;
             this.y = y;
             this.text = text;
         }
 
-        public double getX() { return x; }
-        public double getY() { return y; }
-        public String getText() { return text; }
-        public void setText(String text) { this.text = text; }
+        // Getters and setters
+        public double getX() {
+            return x;
+        }
 
-        public HBox getTagBox() { return tagBox; }
-        public void setTagBox(HBox tagBox) { this.tagBox = tagBox; }
+        public double getY() {
+            return y;
+        }
+
+        public String getText() {
+            return text;
+        }
+
+        public void setText(String text) {
+            this.text = text;
+        }
+
+        public HBox getTagBox() {
+            return tagBox;
+        }
+
+        public void setTagBox(HBox tagBox) {
+            this.tagBox = tagBox;
+        }
     }
 
+    /**
+     * Undoable action for adding a custom decision tag.
+     * Removes the tag when undoing.
+     */
     private class AddDecisionTagAction implements UndoableAction {
-        private CustomDecisionTag tag;
+        private CustomDecisionTag tag; // The tag that was added
 
+        /**
+         * Creates a new add decision tag action.
+         *
+         * @param tag The tag that was added
+         */
         public AddDecisionTagAction(CustomDecisionTag tag) {
             this.tag = tag;
         }
 
+        /**
+         * Undoes the addition by removing the tag.
+         */
         @Override
         public void undo() {
             customDecisionTags.remove(tag);
@@ -1752,13 +2195,25 @@ public class AdventurePlanner extends Application {
         }
     }
 
+    /**
+     * Undoable action for deleting a custom decision tag.
+     * Restores the tag when undoing.
+     */
     private class DeleteDecisionTagAction implements UndoableAction {
-        private CustomDecisionTag tag;
+        private CustomDecisionTag tag; // The tag that was deleted
 
+        /**
+         * Creates a new delete decision tag action.
+         *
+         * @param tag The tag that was deleted
+         */
         public DeleteDecisionTagAction(CustomDecisionTag tag) {
             this.tag = tag;
         }
 
+        /**
+         * Undoes the deletion by restoring the tag.
+         */
         @Override
         public void undo() {
             customDecisionTags.add(tag);
@@ -1766,16 +2221,30 @@ public class AdventurePlanner extends Application {
         }
     }
 
+    /**
+     * Undoable action for moving a custom decision tag.
+     * Restores the tag to its original position when undoing.
+     */
     private class MoveDecisionTagAction implements UndoableAction {
-        private CustomDecisionTag tag;
-        private double oldX, oldY;
+        private CustomDecisionTag tag; // The tag that was moved
+        private double oldX, oldY;     // The original position
 
+        /**
+         * Creates a new move decision tag action.
+         *
+         * @param tag  The tag that was moved
+         * @param oldX The original X position
+         * @param oldY The original Y position
+         */
         public MoveDecisionTagAction(CustomDecisionTag tag, double oldX, double oldY) {
             this.tag = tag;
             this.oldX = oldX;
             this.oldY = oldY;
         }
 
+        /**
+         * Undoes the move by restoring the tag to its original position.
+         */
         @Override
         public void undo() {
             // Store current position for potential redo
@@ -1794,26 +2263,39 @@ public class AdventurePlanner extends Application {
         }
     }
 
+    /**
+     * Undoable action for editing the text of a custom decision tag.
+     * Restores the previous text when undoing.
+     */
     private class EditDecisionTagAction implements UndoableAction {
-        private CustomDecisionTag tag;
-        private String oldText;
+        private CustomDecisionTag tag; // The tag that was edited
+        private String oldText;        // The original text
 
+        /**
+         * Creates a new edit decision tag action.
+         *
+         * @param tag     The tag that was edited
+         * @param oldText The original text before editing
+         */
         public EditDecisionTagAction(CustomDecisionTag tag, String oldText) {
             this.tag = tag;
             this.oldText = oldText;
         }
 
+        /**
+         * Undoes the edit by restoring the previous text.
+         */
         @Override
         public void undo() {
-            // Store current text
+            // Store current text for potential redo
             String currentText = tag.getText();
 
-            // Restore old text
+            // Restore old text in the data model
             tag.setText(oldText);
 
-            // Update visual text
+            // Update visual text in the UI
             if (tag.getTagBox() != null) {
-                // Find the label in the HBox
+                // Find the label in the HBox and update it
                 for (Node node : tag.getTagBox().getChildren()) {
                     if (node instanceof Label) {
                         ((Label) node).setText(oldText);
